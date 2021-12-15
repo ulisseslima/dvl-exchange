@@ -5,7 +5,8 @@ create table tickers (
     id serial primary key,
     name varchar not null unique,
     kind varchar,
-    created timestamp default now()
+    created timestamp default now(),
+    public boolean not null default true
 );
 
 create table exchanges (
@@ -39,7 +40,8 @@ create table snapshots (
     id serial PRIMARY KEY,
     ticker_id bigint not null references tickers on DELETE CASCADE,
     created timestamp default now(),
-    price real not null
+    price real not null,
+    currency varchar not null
 );
 
 insert into tickers (name) values ('DVLCUBE');

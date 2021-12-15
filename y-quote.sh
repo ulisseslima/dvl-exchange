@@ -33,7 +33,7 @@ require tickers
 response=$($yfapi GET "v6/finance/quote?symbols=$tickers")
 if [[ -z "$response" ]]; then
   err "no response"
-  exit 1
+  exit 9
 fi
 
 echo "$response"

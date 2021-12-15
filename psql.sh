@@ -15,7 +15,7 @@ separator="|"
 query="$1"; shift
 if [[ ! -n "$query" ]]; then
     err "arg 1 must be the query"
-    exit 1
+    exit 6
 fi
 
 if [[ "$query" == --create-db ]]; then
@@ -49,7 +49,7 @@ do
     ;;
     -*)
         echo "bad option '$1'"
-        exit 1
+        exit 6
     ;;
     esac
     shift

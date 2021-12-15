@@ -4,7 +4,7 @@ INSTALL_PREFIX=dvlx
 
 if [[ $EUID -eq 0 ]]; then
     echo "this script should NOT be run as root" 1>&2
-    exit 1
+    exit 2
 fi
 
 # these settings can be overridden by creating $LOCAL_ENV
@@ -21,6 +21,7 @@ REPO_DIR=$CLIT
 REPO_NAME=$(basename $REPO_DIR)
 
 TODAY=$(now.sh -d)
+
 CONFD=$HOME/.${REPO_NAME}
 LOCAL_ENV=$CONFD/config
 

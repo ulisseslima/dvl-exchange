@@ -9,6 +9,24 @@ source $MYDIR/env.sh
 [[ -f $LOCAL_ENV ]] && source $LOCAL_ENV 
 source $MYDIR/log.sh
 
+# minutes before sending a repeated request. helps keeping within daily limits
+REQUESTS_INTERVAL=60
+
+##
+# @param $1 file to check
+# @return minutes since last modification
+function last_response_minutes() {
+	local file="$1"
+
+	if [[ ! -f "$file" ]]; then
+		echo $REQUESTS_INTERVAL
+		return 0
+	fi
+
+	local secs=$(echo $(($(date +%s) - $(stat -c %Y -- "$file"))))
+	echo $((${secs}/60))
+}
+
 function yfapi() {
 	method="$1"; shift
 	endpoint="$1"; shift
@@ -45,12 +63,22 @@ function yfapi() {
 	fi
 }
 
-## TODO
-# cache responses
-response=$(yfapi "$@")
-
-out="$CACHE/$1-$2.response.json"
+endpoint="$1-$2"
+out="$CACHE/$endpoint.response.json"
 mkdir -p $(dirname "$out")
+last_response=$(last_response_minutes "$out")
+if [[ "$last_response" -lt $REQUESTS_INTERVAL ]]; then
+	info "last response to $endpoint was $last_response minutes ago. interval is $REQUESTS_INTERVAL minutes. returning cached response."
+	debug "cached response file: $out"
+
+	# TODO return last response only if GET method. if POST, return error.
+	cat "$out"
+	exit 0
+else
+	debug "last response to $endpoint was $last_response minutes ago"
+fi
+
+response=$(yfapi "$@")
 
 echo "$response" > "$out"
 debug "response cached to $out"

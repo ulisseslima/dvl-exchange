@@ -34,7 +34,7 @@ fi
 asset_currency=$($query "select currency from assets where asset_id = $asset_id")
 if [[ "$asset_currency" != "$currency" ]]; then
   err "operation does not asset currency: $currency <> $asset_currency"
-  exit 1
+  exit 4
 fi
 
 id=$($query "insert into asset_ops (kind, asset_id, amount, price, currency, created, institution)

@@ -6,7 +6,7 @@ ME=$(basename $MYSELF)
 logf="$LOGF"
 if [[ -z "$logf" ]]; then
     >&2 echo "env var LOGF must be defined"
-    exit 1
+    exit 3
 fi
 
 logd="$(dirname $logf)"

@@ -15,7 +15,7 @@ function prop() {
   if [[ ! -n "$newvalue" ]]; then
     debug "GETTING '${thekey}'"
     sed -rn "s/^${thekey}=([^\n]+)$/\1/p" $filename
-    exit 0
+    exit 5
   fi
 
   if [ ! -f "$filename" ]; then
