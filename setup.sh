@@ -131,6 +131,7 @@ function wizard() {
     install
 
     prompt YFAPI_KEY "Yahoo Finance API Key"
+    prompt CSCOOP_KEY "Currency Scooper API Key"
     prompt PGPASSWORD "postgres password for $USER"
 
     local_db

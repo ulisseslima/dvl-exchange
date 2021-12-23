@@ -32,6 +32,7 @@ CACHE=/tmp/$REPO_NAME
 mkdir -p $CACHE
 
 YFAPI_URL='https://yfapi.net'
+CSCOOPER_URL='https://api.currencyscoop.com'
 
 DB_NAME=$INSTALL_PREFIX
 DB_USER=$USER
@@ -64,4 +65,8 @@ function check_installed() {
 
 function yfapi_header_key() {
     echo "X-API-KEY: $YFAPI_KEY"
+}
+
+function cscooper_query_key() {
+    echo "&api_key=$CSCOOP_KEY"
 }

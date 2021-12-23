@@ -1,4 +1,5 @@
 #!/bin/bash -e
+# @installable
 # queries the local database
 X=$(dirname `readlink -f ${BASH_SOURCE[0]}`)
 source $X/env.sh
@@ -10,7 +11,14 @@ MYDIR() { echo "$(dirname $(MYSELF))"; }
 MYNAME() { echo "$(basename $(MYSELF))"; }
 CALLER=$(basename `readlink -f $0`)
 
+# TODO support for different ports and hosts
+connection="psql -U $DB_USER $DB_NAME"
+ops='qAtX'
 separator="|"
+
+if [[ $# -lt 1 ]]; then
+    $connection
+fi
 
 query="$1"; shift
 if [[ ! -n "$query" ]]; then
@@ -23,10 +31,6 @@ if [[ "$query" == --create-db ]]; then
     psql -U $DB_USER -c "create database $DB_NAME"
     exit 0
 fi
-
-# TODO support for different ports and hosts
-connection="psql -U $DB_USER $DB_NAME"
-ops='qAtX'
 
 if [[ "$query" == --connection ]]; then
     echo "$connection"
