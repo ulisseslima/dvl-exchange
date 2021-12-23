@@ -37,13 +37,14 @@ esac
 
 info "$fname's snapshot, ordered by cheapest average price:"
 $query "select
+  (select id from assets where ticker_id=ticker.id) asset_id,
   ticker.name,
   max(snap.price), round(avg(snap.price)::numeric, 2) avg, min(snap.price),
   max(snap.currency) currency
 from snapshots snap
 join tickers ticker on ticker.id=snap.ticker_id
 where snap.created > $filter
-group by ticker.name
+group by ticker.id
 order by 
   max(snap.currency),
   avg(snap.price)
