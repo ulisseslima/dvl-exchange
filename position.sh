@@ -1,0 +1,83 @@
+#!/bin/bash -e
+# @installable
+# snapshot from todays' stock prices
+MYSELF="$(readlink -f "$0")"
+MYDIR="${MYSELF%/*}"
+ME=$(basename $MYSELF)
+
+source $MYDIR/env.sh
+[[ -f $LOCAL_ENV ]] && source $LOCAL_ENV
+source $MYDIR/log.sh
+source $(real require.sh)
+
+query=$MYDIR/psql.sh
+
+fname=${1:---month}
+case "$fname" in
+    --today)
+        filter='now()::date'
+    ;;
+    --week)
+        filter="(now()::date - interval '1 week')"
+    ;;
+    --month)
+        filter="(now()::date - interval '1 month')"
+    ;;
+    --year)
+        filter="(now()::date - interval '1 year')"
+    ;;
+    --custom)
+        shift
+        filter="$1"
+    ;;
+    -*)
+        echo "bad option '$1'"
+    ;;
+esac
+
+info "$fname's snapshot, ordered by cheapest average price:"
+$query "select
+  asset.id||'/'||ticker.id asset_ticker,
+  ticker.name,
+  asset.amount,
+  asset.cost,
+  asset.value,
+  (asset.amount*max(snap.price)) max_value,
+  (round((asset.amount*avg(snap.price))::numeric, 2)) avg_value,
+  (asset.amount*min(snap.price)) min_value,
+  max(snap.currency) currency
+from assets asset
+join tickers ticker on ticker.id=asset.ticker_id
+join snapshots snap on snap.ticker_id=ticker.id
+where snap.created > $filter
+group by ticker.id, asset.id
+order by
+  max(snap.currency),
+  avg(snap.price)
+" --full
+
+exchange=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+
+info "total investment cost/value/conversion:"
+$query "select 'BRL', sum(cost), sum(value), '-'
+from assets asset
+where currency = 'BRL'
+"
+
+$query "select 'USD', sum(cost), sum(value), round(sum(value*$exchange)::numeric, 2)
+from assets asset
+where currency = 'USD'
+"
+
+info "diff/%:"
+$query "select 'BRL', (sum(value)-sum(cost))
+from assets asset
+where currency = 'BRL'
+"
+
+$query "select 'USD', (sum(value)-sum(cost))
+from assets asset
+where currency = 'USD'
+"
+
+echo '='

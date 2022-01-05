@@ -6,7 +6,8 @@ create table tickers (
     name varchar not null unique,
     kind varchar,
     created timestamp default now(),
-    public boolean not null default true
+    public boolean not null default true,
+    value real default 0
 );
 
 create table exchanges (
@@ -21,7 +22,8 @@ create table assets (
     amount real default 0,
     created timestamp default now(),
     currency varchar not null default 'undefined',
-    cost real default 0
+    cost real default 0,
+    value real default 0
 );
 
 create table asset_ops (

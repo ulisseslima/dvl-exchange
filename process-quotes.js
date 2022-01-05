@@ -37,11 +37,23 @@ let quotes = JSON.parse(json).quoteResponse.result
 		if (row && row.id) {
 			let tickerId = row.id
 	
-			let r = await client.query(
+			await client.query(
 				'insert into snapshots (ticker_id, price, currency) values ($1, $2, $3)', 
 				[tickerId, quote.regularMarketPrice, quote.currency]
 			)
 			console.log(`└ saved`)
+
+			await client.query(
+				'update tickers set value = ($2) where id = $1', 
+				[tickerId, quote.regularMarketPrice]
+			)
+			console.log(`└ updated current value`)
+
+			await client.query(
+				'update assets set value = ($2*amount) where ticker_id = $1', 
+				[tickerId, quote.regularMarketPrice]
+			)
+			console.log(`└ updated current total value`)
 		} else {
 			console.log(`└ !!! ticker not registered: ${quote.symbol}`)
 		}
