@@ -40,6 +40,7 @@ $query "select
   (select id from assets where ticker_id=ticker.id) asset_id,
   ticker.name,
   max(snap.price), round(avg(snap.price)::numeric, 2) avg, min(snap.price),
+  (select price from snapshots where ticker_id=ticker.id order by id desc limit 1) now,
   max(snap.currency) currency
 from snapshots snap
 join tickers ticker on ticker.id=snap.ticker_id
