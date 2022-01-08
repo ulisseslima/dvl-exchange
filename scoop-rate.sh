@@ -13,7 +13,7 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 api=$MYDIR/currency-scoop-api.sh
 
-currency="$1"
+currency="$1"; shift
 mode=latest
 
 require currency
@@ -21,7 +21,7 @@ require currency
 while test $# -gt 0
 do
     case "$1" in
-    -x) 
+    -x)
       shift
       symbols="$1"
     ;;
