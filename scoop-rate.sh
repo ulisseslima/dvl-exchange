@@ -11,7 +11,7 @@ source $MYDIR/log.sh
 source $(real require.sh)
 
 query=$MYDIR/psql.sh
-api=$MYDIR/currency-scoop-api.sh
+api=$MYDIR/api-currency-scoop.sh
 
 currency="$1"; shift
 mode=latest

@@ -8,25 +8,7 @@ source $MYDIR/env.sh
 [[ -f $LOCAL_ENV ]] && source $LOCAL_ENV 
 source $MYDIR/log.sh
 
-# minutes before sending a repeated request. helps keeping within daily limits
-REQUESTS_INTERVAL=60
 URL=$CSCOOPER_URL
-
-##
-# @param $1 file to check
-# @return minutes since last modification
-function last_response_minutes() {
-	local file="$1"
-
-	if [[ ! -f "$file" ]]; then
-		echo $REQUESTS_INTERVAL
-		return 0
-	fi
-
-	local secs=$(echo $(($(date +%s) - $(stat -c %Y -- "$file"))))
-	echo $((${secs}/60))
-}
-
 function do_request() {
 	method="$1"; shift
 	endpoint="$1"; shift

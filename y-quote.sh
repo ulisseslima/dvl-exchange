@@ -11,7 +11,7 @@ source $MYDIR/log.sh
 source $(real require.sh)
 
 query=$MYDIR/psql.sh
-yfapi=$MYDIR/yfapi.sh
+yfapi=$MYDIR/api-yahoo-finance.sh
 
 # TODO yfapi limits queries to 10 tickers at a time, handle it
 while test $# -gt 0

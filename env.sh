@@ -33,9 +33,13 @@ mkdir -p $CACHE
 
 YFAPI_URL='https://yfapi.net'
 CSCOOPER_URL='https://api.currencyscoop.com'
+API_CEI_URL='https://investidor.b3.com.br/api'
 
 DB_NAME=$INSTALL_PREFIX
 DB_USER=$USER
+
+# minutes before sending a repeated request. helps keeping within daily limits
+API_REQUESTS_INTERVAL=60
 
 function nan() {
     in="$1"
@@ -69,4 +73,27 @@ function yfapi_header_key() {
 
 function cscooper_query_key() {
     echo "&api_key=$CSCOOP_KEY"
+}
+
+function cei_api_query_key() {
+    echo "&cache-guid=$CEI_KEY_GUID"
+}
+
+function cei_api_auth_header() {
+    echo "$CEI_KEY_BEARER"
+}
+
+##
+# @param $1 file to check
+# @return minutes since last modification
+function last_response_minutes() {
+	local file="$1"
+
+	if [[ ! -f "$file" ]]; then
+		echo $API_REQUESTS_INTERVAL
+		return 0
+	fi
+
+	local secs=$(echo $(($(date +%s) - $(stat -c %Y -- "$file"))))
+	echo $((${secs}/60))
 }
