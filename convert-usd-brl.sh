@@ -13,7 +13,7 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 usd="$1"
-require usd "amount in USD"
+require -n usd "amount in USD"
 
 exchange=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 require exchange
