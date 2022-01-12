@@ -58,26 +58,34 @@ order by
 
 exchange=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 
-info "total investment cost/value/conversion:"
-$query "select 'BRL', sum(cost), sum(value), '-'
+info "total investment cost/value:"
+
+total_brl=$($query "select sum(value) from assets asset where currency = 'BRL'")
+total_usd_to_brl=$($query "select round(sum(value*$exchange)::numeric, 2) from assets asset where currency = 'USD'")
+
+$query "select 
+  'BRL' as \"$\", 
+  sum(cost) as cost, 
+  $total_brl as value, 
+  '-' as \"BRL\"
 from assets asset
 where currency = 'BRL'
-"
-
-$query "select 'USD', sum(cost), sum(value), round(sum(value*$exchange)::numeric, 2)
+union
+select 
+  'USD' as \"$\", 
+  sum(cost) as cost, 
+  sum(value) as value, 
+  '$total_usd_to_brl' as \"BRL\"
 from assets asset
 where currency = 'USD'
-"
+" --full
+echo "=$($query "select $total_brl+$total_usd_to_brl") BRL"
 
-info "diff/%:"
-$query "select 'BRL', (sum(value)-sum(cost))
+info "aggregate diff/% increase:"
+$query "select 
+  currency as \"$\",
+  (sum(value)-sum(cost)) as diff, 
+  round(((sum(value)-sum(cost))*100/sum(value))::numeric, 2) as \"%\"
 from assets asset
-where currency = 'BRL'
-"
-
-$query "select 'USD', (sum(value)-sum(cost))
-from assets asset
-where currency = 'USD'
-"
-
-echo '='
+group by currency
+" --full
