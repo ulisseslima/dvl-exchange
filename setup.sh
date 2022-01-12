@@ -130,9 +130,11 @@ function wizard() {
     check_requirements
     install
 
+    prompt PGPASSWORD "postgres password for $USER"
     prompt YFAPI_KEY "Yahoo Finance API Key"
     prompt CSCOOP_KEY "Currency Scooper API Key"
-    prompt PGPASSWORD "postgres password for $USER"
+    prompt CEI_KEY_GUID "CEI cache-guid"
+    prompt CEI_KEY_BEARER "CEI Auth Bearer"
 
     local_db
 

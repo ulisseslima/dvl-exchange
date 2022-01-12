@@ -46,4 +46,14 @@ create table snapshots (
     currency varchar not null
 );
 
+create table dividends (
+    id serial PRIMARY KEY,
+    ticker_id bigint not null references tickers on DELETE CASCADE,
+    created timestamp default now(),
+    value numeric not null,
+    amount numeric not null,
+    total numeric not null,
+    currency varchar not null
+);
+
 insert into tickers (name) values ('DVLCUBE');
