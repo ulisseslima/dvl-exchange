@@ -17,13 +17,44 @@ if [[ $# -lt 1 ]]; then
   exit 0
 fi
 
-store_name="${1^^}";      require store_name
-product_name="${2^^}";    require product_name
-product_brand="${3^^}";   require product_brand
-price="$4";               require -n price
-amount="$5";              [[ -z "$amount" ]] && amount=1
-created="$6";             [[ -z "$created" ]] && created=$(now.sh -d)
-currency="${7^^}";        [[ -z "$currency" ]] && currency=$DEFAULT_CURRENCY
+store_name="${1^^}";      require --nan store_name; shift
+product_name="${1^^}";    require --nan product_name; shift
+product_brand="${1^^}";   require --nan product_brand; shift
+price="$1";               require -nx price; shift
+amount="$1";              require -nx amount; shift
+
+while test $# -gt 0
+do
+    case "$1" in
+    --date|-d)
+      shift 
+      created="$1"
+    ;;
+    --currency|-c)
+      shift
+      currency="$1"
+    ;;
+    --expression|-x)
+      shift
+      expression="$1"
+    ;;
+    -*) 
+      echo "bad option '$1'"
+      exit 1
+    ;;
+    esac
+    shift
+done
+
+[[ -z "$created" ]] && created="$(now.sh -d)"
+[[ -z "$currency" ]] && currency=$DEFAULT_CURRENCY
+
+if [[ -n "$expression" ]]; then
+  price="${price} ${expression}"
+  amount="${amount} ${expression}"
+
+  echo "price: $price, amount: $amount"
+fi
 
 store_id=$($query "select id from stores where name = '${store_name}' or name iLIKE '%${store_name}%' limit 1")
 if [[ -z "$store_id" ]]; then
