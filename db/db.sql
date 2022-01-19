@@ -56,4 +56,31 @@ create table dividends (
     currency varchar not null
 );
 
+create table stores (
+    id serial PRIMARY KEY,
+    created timestamp default now(),
+    name varchar not null,
+    description varchar
+);
+
+create table products (
+    id serial PRIMARY KEY,
+    created timestamp default now(),
+    name varchar not null,
+    brand varchar,
+    tags varchar,
+    description varchar,
+    weight numeric not null default 1
+);
+
+create table product_ops (
+    id serial PRIMARY KEY,
+    product_id bigint not null REFERENCES products on DELETE CASCADE,
+    store_id bigint not null REFERENCES stores on DELETE CASCADE,
+    created timestamp default now(),
+    price numeric not null,
+    amount numeric not null default 1,
+    currency varchar
+);
+
 insert into tickers (name) values ('DVLCUBE');
