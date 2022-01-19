@@ -15,6 +15,8 @@ query=$MYDIR/psql.sh
 info "updating dividends..."
 response=$($MYDIR/api-cei.sh GET "extrato/v1/movimentacao/ultimas")
 
+echo "$response"
+
 if [[ "$response" == *"Authorization Required"* ]]; then
     err "logged out. you need to update key info in $LOCAL_ENV - https://www.investidor.b3.com.br/"
     exit 7

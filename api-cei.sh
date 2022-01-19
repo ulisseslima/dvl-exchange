@@ -47,11 +47,14 @@ else
 fi
 
 response=$(do_request "$@")
+if [[ "$response" == *"Authorization Required"* ]]; then
+    info "not caching error response"
+else
+	echo "$response" > "$out"
+	debug "response cached to $out"
+fi
 
-echo "$response" > "$out"
-debug "response cached to $out"
-
-if [[ "$response" == *html* ]]; then
+if [[ "${response^^}" == *HTML* ]]; then
 	err "$response"
 fi
 
