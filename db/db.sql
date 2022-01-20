@@ -80,7 +80,8 @@ create table product_ops (
     created timestamp default now(),
     price numeric not null,
     amount numeric not null default 1,
-    currency varchar
+    currency varchar,
+    tags varchar
 );
 
 insert into tickers (name) values ('DVLCUBE');
