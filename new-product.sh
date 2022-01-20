@@ -13,15 +13,16 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
-  info "e.g.: $0 WALMART BREAD 1.85 2 '2020-12-02' USD"
+  info "e.g.: $0 WALMART 'ENERGY DRINK' 'RED BULL' 0.250 1.56 -x '*4' --date '2020-12-02'"
   exit 0
 fi
 
 store_name="${1^^}";      require --nan store_name; shift
 product_name="${1^^}";    require --nan product_name; shift
 product_brand="${1^^}";   require --nan product_brand; shift
-price="$1";               require -nx price; shift
 amount="$1";              require -nx amount; shift
+price="$1";               require -nx price; shift
+tags=null
 
 while test $# -gt 0
 do
@@ -37,6 +38,10 @@ do
     --expression|-x)
       shift
       expression="$1"
+    ;;
+    --tags|-t)
+      shift
+      tags="'$1'"
     ;;
     -*) 
       echo "bad option '$1'"

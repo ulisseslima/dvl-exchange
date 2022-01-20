@@ -20,7 +20,7 @@ require product_name
 
 info "latest buys:"
 $query "select 
-  op.id, store.name, product.name, product.brand, op.created, price, amount 
+  op.id, store.name, product.name, product.brand, op.created, price, amount, round((1 * price / amount), 2) as unit
   from product_ops op
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
