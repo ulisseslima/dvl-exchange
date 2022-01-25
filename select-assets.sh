@@ -1,6 +1,6 @@
 #!/bin/bash -e
 # @installable
-# ops search
+# assets search
 MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
@@ -12,11 +12,9 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-filter="(now()::date - interval '1 month')"
+filter="'2000-01-01'"
 and="1=1"
 ticker="2=2"
-order_by='max(op.created) desc'
-
 while test $# -gt 0
 do
     case "$1" in
@@ -51,10 +49,6 @@ do
     --all|-a)
         filter="'2000-01-01'"
     ;;
-    --order-by|-o)
-        shift
-        order_by="$1"
-    ;;
     -*)
         echo "bad option '$1'"
     ;;
@@ -64,17 +58,15 @@ done
 
 info "ops since '$($query "select $filter")'"
 $query "select
-  max(asset.id)||'/'||ticker.id \"ass/tick\",
+  ticker.id ticker_id,
   ticker.name,
-  round((1 * op.price::numeric / op.amount::numeric), 2) as unit,
-  op.*
-from asset_ops op
-join assets asset on asset.id=op.asset_id
+  asset.*
+from assets asset
 join tickers ticker on ticker.id=asset.ticker_id
-where op.created > $filter
+where asset.created > $filter
 and $and
 and $ticker
-group by op.id, ticker.id
+group by ticker.id, asset.id
 order by
-  $order_by
+  ticker.name
 " --full

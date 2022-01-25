@@ -36,11 +36,20 @@ case "$fname" in
 esac
 
 info "$fname's snapshot, ordered by cheapest average price:"
+
 $query "select
   (select id from assets where ticker_id=ticker.id) asset_id,
   ticker.name,
-  max(snap.price), round(avg(snap.price)::numeric, 2) avg, min(snap.price),
-  (select price from snapshots where ticker_id=ticker.id order by id desc limit 1) now,
+  max(snap.price)||' ('||
+    (round(((max(snap.price)-(select price(ticker.id)))*100/(select price(ticker.id))), 2))
+    ||'%)' as \"max (%)\",
+  round(avg(snap.price), 2)||' ('||
+    (round(((round(avg(snap.price), 2)-(select price(ticker.id)))*100/(select price(ticker.id))), 2))
+    ||'%)' as \"avg (%)\",
+  min(snap.price)||' ('||
+    (round(((min(snap.price)-(select price(ticker.id)))*100/(select price(ticker.id))), 2))
+    ||'%)' as \"min (%)\",
+  (select price(ticker.id)) now,
   max(snap.currency) currency
 from snapshots snap
 join tickers ticker on ticker.id=snap.ticker_id

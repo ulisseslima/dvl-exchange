@@ -85,7 +85,7 @@ info "aggregate diff/% increase:"
 $query "select 
   currency as \"$\",
   (sum(value)-sum(cost)) as diff, 
-  round(((sum(value)-sum(cost))*100/sum(value))::numeric, 2) as \"%\"
+  round(((sum(value)-sum(cost))*100/sum(value)), 2) as \"%\"
 from assets asset
 group by currency
 " --full

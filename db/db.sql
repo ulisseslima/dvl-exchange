@@ -7,7 +7,7 @@ create table tickers (
     kind varchar,
     created timestamp default now(),
     public boolean not null default true,
-    value real default 0
+    value numeric default 0
 );
 
 create table exchanges (
@@ -19,22 +19,22 @@ create table exchanges (
 create table assets (
     id serial PRIMARY KEY,
     ticker_id bigint references tickers,
-    amount real default 0,
+    amount numeric default 0,
     created timestamp default now(),
     currency varchar not null default 'undefined',
-    cost real default 0,
-    value real default 0
+    cost numeric default 0,
+    value numeric default 0
 );
 
 create table asset_ops (
     id serial PRIMARY KEY,
     asset_id bigint not null references assets on DELETE CASCADE,
     kind varchar not null check(kind in ('BUY', 'SELL')),
-    amount real not null,
-    price real not null,
+    amount numeric not null,
+    price numeric not null,
     currency varchar not null,
     institution varchar,
-    rate real default 0,
+    rate numeric default 0,
     created timestamp default now()
 );
 
@@ -42,7 +42,7 @@ create table snapshots (
     id serial PRIMARY KEY,
     ticker_id bigint not null references tickers on DELETE CASCADE,
     created timestamp default now(),
-    price real not null,
+    price numeric not null,
     currency varchar not null
 );
 
@@ -85,3 +85,33 @@ create table product_ops (
 );
 
 insert into tickers (name) values ('DVLCUBE');
+
+CREATE OR REPLACE FUNCTION price(tickerId BIGINT)
+RETURNS NUMERIC AS $f$
+BEGIN
+  select price from snapshots where ticker_id=tickerId 
+  order by id desc 
+  limit 1 
+  into _price;
+  RETURN _price;
+END;
+$f$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION recalculate_assets()
+RETURNS NUMERIC AS $f$
+DECLARE
+  rows_affected integer;
+BEGIN
+  update assets asset 
+  set cost = sop.price_sum
+  from (
+    select op.asset_id, sum(op.price) as price_sum
+    from asset_ops op
+    group by op.asset_id
+  ) as sop
+  where sop.asset_id = asset.id;
+
+  GET DIAGNOSTICS rows_affected = ROW_COUNT;
+  RETURN rows_affected;
+END;
+$f$ LANGUAGE plpgsql;
