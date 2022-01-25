@@ -17,5 +17,6 @@ require -n usd "amount in USD"
 
 exchange=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 require exchange
+info "rate: 1 USD = $exchange BRL"
 
 $query "select round(($usd*$exchange)::numeric, 2)"
