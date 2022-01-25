@@ -12,10 +12,14 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-info "updating dividends..."
+info "updating with CEI ..."
 response=$($MYDIR/api-cei.sh GET "extrato/v1/movimentacao/ultimas")
-
 echo "$response"
+
+if [[ -z "$response" ]]; then
+    err "no response from CEI, check token"
+    exit 1
+fi
 
 if [[ "$response" == *"Authorization Required"* ]]; then
     err "logged out. you need to update key info in $LOCAL_ENV - https://www.investidor.b3.com.br/"

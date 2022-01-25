@@ -10,6 +10,7 @@ const pool = new Pool({
 })
 
 let json = undefined
+console.log("connecting to local db...")
 
 if (process.argv[2]) {
 	json = process.argv[2]
@@ -31,38 +32,67 @@ let items = JSON.parse(json).itens
 		if (!item) continue
 
 		let tickerName = item.nomeProduto.split(" ")[0]
+		console.log(`# ${item.instituicao}`)
 		console.log(`${item.tipoMovimentacao} - ${tickerName}: ${item.quantidade} * ${item.precoUnitario} = ${item.valorOperacao}`)
 		if (!item.precoUnitario) {
-			console.log("└ignored")
+			console.log("└ sync item ignored")
 			continue
+		}
+		
+		let results = await client.query(`select id from tickers where name ilike $1 limit 1`, [tickerName+"%"])
+		let ticker = results.rows[0]
+		if (!ticker || !ticker.id) {
+			console.log(`└ !!! ticker not registered: ${tickerName}`)
 		}
 
 		if (item.tipoMovimentacao && item.tipoMovimentacao == 'Rendimento') {
-			let results = await client.query(`select id from tickers where name ilike $1 limit 1`, [tickerName+"%"])
-			let ticker = results.rows[0]
-			if (ticker && ticker.id) {
-				let tickerId = ticker.id
-				let matches = await client.query(`
-					select count(id) from dividends 
-					where ticker_id = $1
-					and value = $2
-					and amount = $3
-					and total = $4
-				`, [tickerId, item.precoUnitario, item.quantidade, item.valorOperacao])
+			console.log(`# processing dividends >`)
 
-				if (matches.rows[0].count > 0) {
-					console.log("└already saved")
-					continue
-				}
-		
-				await client.query(
-					'insert into dividends (ticker_id, value, amount, total, currency) values ($1, $2, $3, $4, $5)', 
-					[tickerId, item.precoUnitario, item.quantidade, item.valorOperacao, "BRL"]
-				)
-				console.log(`└ saved`)
-			} else {
-				console.log(`└ !!! ticker not registered: ${tickerName}`)
+			let tickerId = ticker.id
+			let matches = await client.query(`
+				select count(id) from dividends 
+				where ticker_id = $1
+				and value = $2
+				and amount = $3
+				and total = $4
+			`, [tickerId, item.precoUnitario, item.quantidade, item.valorOperacao])
+
+			if (matches.rows[0].count > 0) {
+				console.log("└ dividend already saved")
+				continue
 			}
+	
+			await client.query(
+				'insert into dividends (ticker_id, value, amount, total, currency) values ($1, $2, $3, $4, $5)', 
+				[tickerId, item.precoUnitario, item.quantidade, item.valorOperacao, "BRL"]
+			)
+			console.log(`└ dividend saved`)
+		}
+
+		if (item.tipoMovimentacao && item.tipoMovimentacao == 'Transferência - Liquidação') {
+			console.log(`# processing ops >`)
+
+			let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
+			let asset = assets.rows[0]
+
+			let matches = await client.query(`
+				select count(id) from asset_ops
+				where asset_id = $1
+				and kind = 'BUY'
+				and price = $2
+				and amount = $3
+			`, [asset.id, item.precoUnitario, item.quantidade])
+
+			if (matches.rows[0].count > 0) {
+				console.log("└ op already saved")
+				continue
+			}
+	
+			await client.query(
+				'insert into asset_ops (asset_id, price, amount, currency, institution, kind) values ($1, $2, $3, $4, $5, $6)', 
+				[asset.id, item.precoUnitario, item.quantidade, 'BRL', item.instituicao, 'BUY']
+			)
+			console.log(`└ op saved`)
 		}
 	}
 	
