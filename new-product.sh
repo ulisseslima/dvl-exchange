@@ -41,7 +41,7 @@ do
     ;;
     --tags|-t)
       shift
-      tags="'$1'"
+      tags="'${1^^}'"
     ;;
     -*) 
       echo "bad option '$1'"
@@ -71,7 +71,7 @@ fi
 product_id=$($query "select id from products where (name = '${product_name}' or name iLIKE '%${product_name}%') and brand iLIKE '%${product_brand}%' limit 1")
 if [[ -z "$product_id" ]]; then
   info "creating new product: $product_name ($product_brand)"
-  product_id=$($query "insert into products (name, brand) values ('$product_name', '$product_brand') returning id")
+  product_id=$($query "insert into products (name, brand, tags) values ('$product_name', '$product_brand', $tags) returning id")
   echo "#$product_id"
 fi
 

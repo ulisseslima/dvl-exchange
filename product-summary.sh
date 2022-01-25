@@ -40,3 +40,13 @@ $query "select
 group by product.id 
 order by max(op.created) desc 
 limit 5" --full
+
+info "cheapest buys:"
+$query "select 
+  op.id, store.name, product.name, product.brand, op.created, price, amount, round((1 * price / amount), 2) as unit
+  from product_ops op
+  join products product on product.id=op.product_id
+  join stores store on store.id=op.store_id  
+  where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
+order by unit 
+limit 5" --full
