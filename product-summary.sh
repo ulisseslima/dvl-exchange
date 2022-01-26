@@ -25,7 +25,7 @@ $query "select
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
-order by op.created desc 
+order by op.created desc, op.id desc 
 limit 5" --full
 
 info "average price:"
