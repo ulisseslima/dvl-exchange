@@ -62,12 +62,16 @@ do
     shift
 done
 
+rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+require rate
+
 info "ops since '$($query "select $filter")'"
 $query "select
   max(asset.id)||'/'||ticker.id \"ass/tick\",
   ticker.name,
   round((1 * op.price::numeric / op.amount::numeric), 2) as unit,
-  op.*
+  op.*,
+  (case when op.currency = 'USD' then (price*coalesce(op.rate, $rate))::text else '-' end) BRL
 from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id

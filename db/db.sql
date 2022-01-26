@@ -34,7 +34,7 @@ create table asset_ops (
     price numeric not null,
     currency varchar not null,
     institution varchar,
-    rate numeric default 0,
+    rate numeric default 1,
     created timestamp default now()
 );
 

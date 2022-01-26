@@ -42,8 +42,14 @@ if [[ "$asset_currency" != "$currency" ]]; then
   exit 4
 fi
 
-id=$($query "insert into asset_ops (kind, asset_id, amount, price, currency, created, institution)
-  select '$kind', $asset_id, $amount, $price, '$currency', '$created', '$inst'
+rate=1
+if [[ "$currency" == USD ]]; then
+  rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+  require rate
+fi
+
+id=$($query "insert into asset_ops (kind, asset_id, amount, price, currency, created, institution, rate)
+  select '$kind', $asset_id, $amount, $price, '$currency', '$created', '$inst', $rate
   returning id
 ")
 
