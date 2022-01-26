@@ -49,7 +49,12 @@ $query "select
   min(snap.price)||' ('||
     (round(((min(snap.price)-(select price(ticker.id)))*100/(select price(ticker.id))), 2))
     ||'%)' as \"min (%)\",
-  (select price(ticker.id)) now,
+  (select price(ticker.id) || 
+    (case 
+      when (select price(ticker.id)) <= min(snap.price) then ' !!!' 
+      when (select price(ticker.id)) >= max(snap.price) then ' X' 
+      else '' 
+    end)) now,
   max(snap.currency) currency
 from snapshots snap
 join tickers ticker on ticker.id=snap.ticker_id
