@@ -34,7 +34,7 @@ let items = JSON.parse(json).itens
 		let tickerName = item.nomeProduto.split(" ")[0]
 		console.log(`# ${item.instituicao}`)
 		console.log(`${item.tipoMovimentacao} - ${tickerName}: ${item.quantidade} * ${item.precoUnitario} = ${item.valorOperacao}`)
-		if (!item.precoUnitario) {
+		if (!item.valorOperacao) {
 			console.log("└ sync item ignored")
 			continue
 		}
@@ -81,7 +81,7 @@ let items = JSON.parse(json).itens
 				and kind = 'BUY'
 				and price = $2
 				and amount = $3
-			`, [asset.id, item.precoUnitario, item.quantidade])
+			`, [asset.id, item.valorOperacao, item.quantidade])
 
 			if (matches.rows[0].count > 0) {
 				console.log("└ op already saved")
@@ -90,7 +90,7 @@ let items = JSON.parse(json).itens
 	
 			await client.query(
 				'insert into asset_ops (asset_id, price, amount, currency, institution, kind) values ($1, $2, $3, $4, $5, $6)', 
-				[asset.id, item.precoUnitario, item.quantidade, 'BRL', item.instituicao, 'BUY']
+				[asset.id, item.valorOperacao, item.quantidade, 'BRL', item.instituicao, 'BUY']
 			)
 			console.log(`└ op saved`)
 		}
