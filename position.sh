@@ -41,10 +41,18 @@ $query "select
   ticker.name,
   asset.amount,
   asset.cost,
-  asset.value,
-  (asset.amount*max(snap.price)) max_value,
-  (round((asset.amount*avg(snap.price))::numeric, 2)) avg_value,
-  (asset.amount*min(snap.price)) min_value,
+  asset.value ||' ('||
+    (round(((asset.value-asset.cost)*100/asset.cost), 2))
+    ||'%)' as \"curr_val (%)\",
+  (asset.amount*max(snap.price)) ||' ('||
+    (round((((asset.amount*max(snap.price))-asset.cost)*100/asset.cost), 2))
+    ||'%)' as \"max_val (%)\",
+  (round((asset.amount*avg(snap.price)), 2)) ||' ('||
+    (round((((round((asset.amount*avg(snap.price)), 2))-asset.cost)*100/asset.cost), 2))
+    ||'%)' as \"avg_val (%)\",
+  (asset.amount*min(snap.price)) ||' ('||
+    (round((((asset.amount*min(snap.price))-asset.cost)*100/asset.cost), 2))
+    ||'%)' as \"min_val (%)\",
   max(snap.currency) currency
 from assets asset
 join tickers ticker on ticker.id=asset.ticker_id
@@ -61,7 +69,7 @@ exchange=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 info "total investment cost/value:"
 
 total_brl=$($query "select sum(value) from assets asset where currency = 'BRL'")
-total_usd_to_brl=$($query "select round(sum(value*$exchange)::numeric, 2) from assets asset where currency = 'USD'")
+total_usd_to_brl=$($query "select round(sum(value*$exchange), 2) from assets asset where currency = 'USD'")
 
 $query "select 
   'BRL' as \"$\", 
