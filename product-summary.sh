@@ -12,8 +12,25 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-product_name="${1^^}"    
+product_name="${1^^}"
 require product_name
+shift
+
+brand="product.brand=product.brand"
+
+while test $# -gt 0
+do
+    case "$1" in
+    --brand|-b)
+        shift
+        brand="product.brand ilike '%$1%'"
+    ;;
+    -*)
+        echo "bad option '$1'"
+    ;;
+    esac
+    shift
+done
 
 #info "total bought:"
 #$query "select sum(price) from product_ops where product_id = $product_id"
@@ -25,6 +42,7 @@ $query "select
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
+  and $brand
 order by op.created desc, op.id desc 
 limit 5" --full
 
@@ -37,9 +55,10 @@ $query "select
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
+  and $brand
 group by product.id 
 order by max(op.created) desc 
-limit 5" --full
+" --full
 
 info "cheapest buys:"
 $query "select 
@@ -48,5 +67,6 @@ $query "select
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
+  and $brand
 order by unit 
 limit 5" --full

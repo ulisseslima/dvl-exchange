@@ -53,7 +53,8 @@ create table dividends (
     value numeric not null,
     amount numeric not null,
     total numeric not null,
-    currency varchar not null
+    currency varchar not null,
+    rate numeric default 1
 );
 
 create table stores (

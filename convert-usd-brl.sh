@@ -13,10 +13,14 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 usd="$1"
-require -n usd "amount in USD"
+require -nx usd "amount in USD"
+
+if [[ $(nan.sh "$usd") == true ]]; then
+    $query "select $usd"
+fi
 
 exchange=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 require exchange
 info "rate: 1 USD = $exchange BRL"
 
-$query "select round(($usd*$exchange)::numeric, 2)"
+$query "select round((($usd)*$exchange)::numeric, 2)"
