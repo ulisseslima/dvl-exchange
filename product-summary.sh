@@ -17,6 +17,7 @@ require product_name
 shift
 
 brand="product.brand=product.brand"
+limit=5
 
 while test $# -gt 0
 do
@@ -24,6 +25,10 @@ do
     --brand|-b)
         shift
         brand="product.brand ilike '%$1%'"
+    ;;
+    --limit|-l)
+        shift
+        limit="$1"
     ;;
     -*)
         echo "bad option '$1'"
@@ -44,7 +49,7 @@ $query "select
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
 order by op.created desc, op.id desc 
-limit 5" --full
+limit $limit" --full
 
 info "average price:"
 $query "select 
@@ -69,4 +74,4 @@ $query "select
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
 order by unit 
-limit 5" --full
+limit $limit" --full
