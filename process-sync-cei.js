@@ -96,6 +96,13 @@ let items = JSON.parse(json).itens
 					[asset.id, item.valorOperacao, item.quantidade, 'BRL', item.instituicao, 'BUY']
 				)
 				console.log(`└ op saved`)
+
+				await client.query(
+					`update assets set amount=amount+$1, cost=cost+$2, value=0 where id = $3`,
+					[item.quantidade, item.valorOperacao, asset.id]
+				)
+				console.log(`└- asset updated`)
+
 				break
 			default:
 				console.log(`└ type ignored: ${movimentacao}`)
