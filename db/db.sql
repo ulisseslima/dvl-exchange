@@ -71,7 +71,8 @@ create table products (
     brand varchar,
     tags varchar,
     description varchar,
-    weight numeric not null default 1
+    weight numeric not null default 1,
+    extra jsonb
 );
 
 create table product_ops (

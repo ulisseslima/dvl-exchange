@@ -52,10 +52,12 @@ order by op.created desc, op.id desc
 limit $limit" --full
 
 info "average price:"
-$query "select 
+$query "select
+    product.id,
     product.name, 
     product.brand, 
-    round((1 * sum(price) / sum(amount)), 2) as unit 
+    round((1 * sum(price) / sum(amount)), 2) as unit,
+    product.extra->'carbs' \"carbs%\"
   from product_ops op
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
