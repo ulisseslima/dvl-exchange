@@ -23,6 +23,7 @@ product_brand="${1^^}";   require --nan product_brand; shift
 amount="$1";              require -nx amount; shift
 price="$1";               require -nx price; shift
 tags=null
+extra=null
 
 while test $# -gt 0
 do
@@ -42,6 +43,14 @@ do
     --tags|-t)
       shift
       tags="'${1^^}'"
+    ;;
+    --extra|-e)
+      shift
+      extra="'${1,,}'"
+    ;;
+    --carbs)
+      shift
+      extra="'{\"carbs\":$1}'"
     ;;
     -*) 
       echo "bad option '$1'"
@@ -71,8 +80,11 @@ fi
 product_id=$($query "select id from products where (name = '${product_name}' or name iLIKE '%${product_name}%') and brand iLIKE '%${product_brand}%' limit 1")
 if [[ -z "$product_id" ]]; then
   info "creating new product: $product_name ($product_brand)"
-  product_id=$($query "insert into products (name, brand, tags) values ('$product_name', '$product_brand', $tags) returning id")
+  product_id=$($query "insert into products (name, brand, tags, extra) values ('$product_name', '$product_brand', $tags, $extra) returning id")
   echo "#$product_id"
+else
+  info "updating product #$product_id: $product_name ($product_brand)"
+  $query "update products set tags=tags || $tags, extra=extra || $extra where id = $product_id"
 fi
 
 id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created)
