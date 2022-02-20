@@ -64,13 +64,14 @@ done
 
 rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 require rate
+info "today's rate: $rate"
 
-info "ops since '$($query "select $filter")'"
+info "dividends since '$($query "select $filter")'"
 $query "select
   op.ticker_id,
   ticker.name,
   op.*,
-  (case when op.currency = 'USD' then (total*coalesce(op.rate, $rate))::text else '-' end) BRL
+  (case when op.currency = 'USD' then round((total*$rate), 2)::text else total::text end) BRL
 from dividends op
 join tickers ticker on ticker.id=op.ticker_id
 where op.created > $filter
@@ -80,3 +81,17 @@ group by op.id, ticker.id
 order by
   $order_by
 " --full
+
+info "sum (BRL):"
+$query "select round(sum(
+  (case when op.currency = 'USD' then 
+    (total*$rate) else 
+    total 
+  end)
+), 2)
+from dividends op
+join tickers ticker on ticker.id=op.ticker_id
+where op.created > $filter
+and $and
+and $ticker
+"
