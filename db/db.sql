@@ -72,7 +72,7 @@ create table products (
     tags varchar,
     description varchar,
     weight numeric not null default 1,
-    extra jsonb
+    extra jsonb not null default '{}'
 );
 
 create table product_ops (

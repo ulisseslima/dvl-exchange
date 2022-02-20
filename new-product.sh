@@ -93,7 +93,7 @@ id=$($query "insert into product_ops (store_id, product_id, amount, price, curre
 ")
 
 if [[ -n "$id" ]]; then
-  info "success: $id"
+  info "new product op: $id"
 
   info "total cost:"
   $query "select sum(price) from product_ops where product_id = $product_id"
