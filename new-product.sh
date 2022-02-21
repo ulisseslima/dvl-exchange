@@ -23,7 +23,7 @@ product_brand="${1^^}";   require --nan product_brand; shift
 amount="$1";              require -nx amount; shift
 price="$1";               require -nx price; shift
 tags=null
-extra='{}'
+extra="'{}'"
 
 while test $# -gt 0
 do
