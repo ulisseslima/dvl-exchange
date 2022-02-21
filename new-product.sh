@@ -23,7 +23,7 @@ product_brand="${1^^}";   require --nan product_brand; shift
 amount="$1";              require -nx amount; shift
 price="$1";               require -nx price; shift
 tags=null
-extra=null
+extra='{}'
 
 while test $# -gt 0
 do
@@ -68,6 +68,10 @@ if [[ -n "$expression" ]]; then
   amount="${amount} ${expression}"
 
   echo "price: $price, amount: $amount"
+fi
+
+if [[ -n "$extra" ]]; then
+  info "extra info: $extra"
 fi
 
 store_id=$($query "select id from stores where name = '${store_name}' or name iLIKE '%${store_name}%' limit 1")
