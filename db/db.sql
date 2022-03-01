@@ -83,6 +83,7 @@ create table product_ops (
     price numeric not null,
     amount numeric not null default 1,
     currency varchar,
+    hidden boolean not null default false,
     tags varchar
 );
 

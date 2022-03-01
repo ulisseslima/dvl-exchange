@@ -23,6 +23,7 @@ product_brand="${1^^}";   require --nan product_brand; shift
 amount="$1";              require -nx amount; shift
 price="$1";               require -nx price; shift
 tags=null
+hide=false
 extra="'{}'"
 
 while test $# -gt 0
@@ -51,6 +52,9 @@ do
     --carbs)
       shift
       extra="'{\"carbs\":$1}'"
+    ;;
+    --hide)
+      hide=true
     ;;
     -*) 
       echo "bad option '$1'"
@@ -91,8 +95,8 @@ else
   $query "update products set tags=tags || $tags, extra=extra || $extra where id = $product_id"
 fi
 
-id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created)
-  select $store_id, $product_id, $amount, $price, '$currency', '$created'
+id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created, hidden)
+  select $store_id, $product_id, $amount, $price, '$currency', '$created', $hide
   returning id
 ")
 
