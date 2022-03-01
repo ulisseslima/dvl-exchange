@@ -24,3 +24,8 @@ require exchange
 info "rate: 1 USD = $exchange BRL"
 
 $query "select round((($usd)*$exchange)::numeric, 2)"
+
+$query "insert into snapshots
+(ticker_id, price, currency) 
+values 
+((select id from tickers where name = 'USD-BRL' limit 1), $exchange, 'BRL')"
