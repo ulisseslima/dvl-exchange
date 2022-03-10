@@ -81,8 +81,8 @@ where currency = 'BRL'
 union
 select 
   'USD' as \"$\", 
-  sum(cost) as cost, 
-  sum(value) as value, 
+  round(sum(cost), 2) as cost, 
+  round(sum(value), 2) as value, 
   '$total_usd_to_brl' as \"BRL\"
 from assets asset
 where currency = 'USD'
@@ -92,7 +92,7 @@ echo "=$($query "select $total_brl+$total_usd_to_brl") BRL"
 info "aggregate diff/% increase:"
 $query "select 
   currency as \"$\",
-  (sum(value)-sum(cost)) as diff, 
+  round(sum(value)-sum(cost), 2) as diff, 
   round(((sum(value)-sum(cost))*100/sum(value)), 2) as \"%\"
 from assets asset
 group by currency
