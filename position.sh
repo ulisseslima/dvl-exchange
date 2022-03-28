@@ -1,6 +1,6 @@
 #!/bin/bash -e
 # @installable
-# snapshot from todays' stock prices
+# your assets position on a date range
 MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
@@ -12,88 +12,58 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-fname=${1:---month}
+fname=${1:---all}
+today="now()::date"
 case "$fname" in
+    --all)
+      interval="'1900-01-01' and now()"
+    ;;
     --today)
-        filter='now()::date'
+      interval="$today and ($today + interval '1 day')"
     ;;
     --week)
-        filter="(now()::date - interval '1 week')"
+      interval="($today - interval '1 week') and $today"
     ;;
     --month)
-        filter="(now()::date - interval '1 month')"
+      interval="($today - interval '1 month') and $today"
     ;;
     --year)
-        filter="(now()::date - interval '1 year')"
+      if [[ "$2" != "-"* ]]; then
+        shift
+        y=$1
+        interval="'$y-01-01' and ('$y-01-01'::timestamp + interval '1 year')"
+      else
+        interval="($today - interval '1 year')"
+      fi
+    ;;
+    --until)
+      shift
+      cut=$1
+      interval="'1900-01-01' and '$1'"
     ;;
     --custom)
-        shift
-        filter="$1"
+      shift
+      interval="$1"
     ;;
     -*)
-        echo "bad option '$1'"
+      echo "bad option '$1'"
     ;;
 esac
 
-info "$fname's snapshot, ordered by cheapest average price:"
+info "$interval's position, ordered by currency, amount and name:"
 $query "select
-  asset.id||'/'||ticker.id asset_ticker,
+  max(asset.id)||'/'||ticker.id asset_ticker,
   ticker.name,
-  asset.amount,
-  asset.cost,
-  asset.value ||' ('||
-    (round(((asset.value-asset.cost)*100/asset.cost), 2))
-    ||'%)' as \"curr_val (%)\",
-  (asset.amount*max(snap.price)) ||' ('||
-    (round((((asset.amount*max(snap.price))-asset.cost)*100/asset.cost), 2))
-    ||'%)' as \"max_val (%)\",
-  (round((asset.amount*avg(snap.price)), 2)) ||' ('||
-    (round((((round((asset.amount*avg(snap.price)), 2))-asset.cost)*100/asset.cost), 2))
-    ||'%)' as \"avg_val (%)\",
-  (asset.amount*min(snap.price)) ||' ('||
-    (round((((asset.amount*min(snap.price))-asset.cost)*100/asset.cost), 2))
-    ||'%)' as \"min_val (%)\",
-  max(snap.currency) currency
-from assets asset
+  sum(op.amount) as n,
+  sum(op.price) as cost,
+  max(op.currency) currency
+from asset_ops op
+join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
-join snapshots snap on snap.ticker_id=ticker.id
-where snap.created > $filter
-group by ticker.id, asset.id
+where op.created between $interval
+group by op.asset_id, ticker.id
 order by
-  max(snap.currency),
-  avg(snap.price)
-" --full
-
-exchange=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
-
-info "total investment cost/value:"
-
-total_brl=$($query "select sum(value) from assets asset where currency = 'BRL'")
-total_usd_to_brl=$($query "select round(sum(value*$exchange), 2) from assets asset where currency = 'USD'")
-
-$query "select 
-  'BRL' as \"$\", 
-  sum(cost) as cost, 
-  $total_brl as value, 
-  '-' as \"BRL\"
-from assets asset
-where currency = 'BRL'
-union
-select 
-  'USD' as \"$\", 
-  round(sum(cost), 2) as cost, 
-  round(sum(value), 2) as value, 
-  '$total_usd_to_brl' as \"BRL\"
-from assets asset
-where currency = 'USD'
-" --full
-echo "=$($query "select $total_brl+$total_usd_to_brl") BRL"
-
-info "aggregate diff/% increase:"
-$query "select 
-  currency as \"$\",
-  round(sum(value)-sum(cost), 2) as diff, 
-  round(((sum(value)-sum(cost))*100/sum(value)), 2) as \"%\"
-from assets asset
-group by currency
+  max(op.currency),
+  n desc,
+  ticker.name
 " --full

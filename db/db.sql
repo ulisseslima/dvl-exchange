@@ -1,6 +1,7 @@
 -- https://aws.amazon.com/blogs/database/multi-tenant-data-isolation-with-postgresql-row-level-security/
 -- TODO pool partitionaing
 
+--/
 create table tickers (
     id serial primary key,
     name varchar not null unique,
@@ -87,8 +88,17 @@ create table product_ops (
     tags varchar
 );
 
+create table institutions (
+    id varchar PRIMARY KEY,
+    public_id varchar,
+    created timestamp default now(),
+    extra jsonb default '{}'
+);
+
+--/
 insert into tickers (name) values ('DVLCUBE');
 
+--/
 CREATE OR REPLACE FUNCTION price(tickerId BIGINT)
 RETURNS NUMERIC AS $f$
 BEGIN

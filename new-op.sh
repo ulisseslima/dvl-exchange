@@ -48,8 +48,16 @@ if [[ "$currency" == USD ]]; then
   require rate
 fi
 
+institution=$($query "select id from institutions where id ilike '%$inst%' order by id limit 1")
+if [[ -z "$institution" ]]; then
+  info "new institution: $inst"
+  $query "insert into institutions (id) values ('$inst')"
+else
+  info "institution: $institution"
+fi
+
 id=$($query "insert into asset_ops (kind, asset_id, amount, price, currency, created, institution, rate)
-  select '$kind', $asset_id, $amount, $price, '$currency', '$created', '$inst', $rate
+  select '$kind', $asset_id, $amount, $price, '$currency', '$created', '$institution', $rate
   returning id
 ")
 
