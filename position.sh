@@ -32,12 +32,12 @@ do
       interval="($today - interval '1 month') and $today"
     ;;
     --year)
-      if [[ "$2" != "-"* ]]; then
+      if [[ -n "$2" && "$2" != "-"* ]]; then
         shift
         y=$1
         interval="'$y-01-01' and ('$y-01-01'::timestamp + interval '1 year')"
       else
-        interval="($today - interval '1 year')"
+        interval="($today - interval '1 year') and $today"
       fi
     ;;
     --until)
@@ -73,7 +73,8 @@ $query "select
 from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
-where op.created between $interval $ticker
+where op.created between $interval 
+$ticker
 group by op.asset_id, ticker.id
 order by
   max(op.currency),

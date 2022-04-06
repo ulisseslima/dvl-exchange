@@ -12,15 +12,20 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-filter="(now()::date - interval '1 month')"
+start="(now()::date - interval '1 month')"
+end="now()"
+
 and="1=1"
 ticker="2=2"
-order_by='max(op.created) desc'
+order_by='max(op.created)'
+
+today="now()::date"
+kotoshi=$(now.sh -y)
 
 while test $# -gt 0
 do
     case "$1" in
-    --where|-w)
+    --where)
         shift
         and="$1"
     ;;
@@ -28,28 +33,43 @@ do
         shift
         ticker="ticker.name ilike '$1%'"
     ;;
-    --filter|-f)
+    --today)
+        start="$today"
+        end="($today + interval '1 day')"
+    ;;
+    --week|-w)
+        start="($today - interval '1 week')"
+        end="$today"
+    ;;
+    --month|-m)
+        if [[ -n "$2" && "$2" != "-"* ]]; then
+            shift
+            m=$1
+            start="'$kotoshi-$m-01'"
+            end="('$kotoshi-$m-01'::timestamp + interval '1 month')"
+        else
+            start="($today - interval '1 month')"
+            end="$today"
+        fi
+    ;;
+    --year|-y)
+        if [[ "$2" != "-"* ]]; then
+            shift
+            y=$1
+            start="'$y-01-01'"
+            end="('$y-01-01'::timestamp + interval '1 year')"
+        else
+            start="($today - interval '1 year')"
+            end="$today"
+        fi
+    ;;
+    --until)
         shift
-        case "$1" in
-            today)
-                filter='now()::date'
-            ;;
-            week)
-                filter="(now()::date - interval '1 week')"
-            ;;
-            month)
-                filter="(now()::date - interval '1 month')"
-            ;;
-            year)
-                filter="(now()::date - interval '1 year')"
-            ;;
-            none)
-                filter="'2000-01-01'"
-            ;;
-        esac
+        cut=$1
+        interval="'1900-01-01' and '$1'"
     ;;
     --all|-a)
-        filter="'2000-01-01'"
+        interval="'1900-01-01' and now()"
     ;;
     --order-by|-o)
         shift
@@ -62,11 +82,13 @@ do
     shift
 done
 
+interval="$start and $end"
+
 rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 require rate
 info "today's rate: $rate"
 
-info "dividends since '$($query "select $filter")'"
+info "dividends between $($query "select $start") and $($query "select $end")"
 $query "select
   op.ticker_id,
   ticker.name,
@@ -74,7 +96,7 @@ $query "select
   (case when op.currency = 'USD' then round((total*$rate), 2)::text else total::text end) BRL
 from dividends op
 join tickers ticker on ticker.id=op.ticker_id
-where op.created > $filter
+where op.created between $interval
 and $and
 and $ticker
 group by op.id, ticker.id
@@ -91,7 +113,7 @@ $query "select round(sum(
 ), 2)
 from dividends op
 join tickers ticker on ticker.id=op.ticker_id
-where op.created > $filter
+where op.created between $interval
 and $and
 and $ticker
 "
