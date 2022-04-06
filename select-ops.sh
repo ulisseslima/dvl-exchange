@@ -31,7 +31,7 @@ do
     ;;
     --ticker|-t)
         shift
-        ticker="ticker.name ilike '$1%'"
+        ticker="ticker.name ~* '$1'"
     ;;
     --today)
         start="$today"
