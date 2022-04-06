@@ -12,9 +12,13 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-fname=${1:---all}
+ticker=""
+show='--full'
+
 today="now()::date"
-case "$fname" in
+while test $# -gt 0
+do
+  case "$1" in
     --all)
       interval="'1900-01-01' and now()"
     ;;
@@ -45,12 +49,21 @@ case "$fname" in
       shift
       interval="$1"
     ;;
+    --ticker|-t)
+      shift
+      ticker="and lower(ticker.name) = '${1,,}'"
+    ;;
+    --short)
+      show=""
+    ;;
     -*)
       echo "bad option '$1'"
     ;;
-esac
+  esac
+  shift
+done
 
-info "$interval's position, ordered by currency, amount and name:"
+info "$interval's position, ordered by currency, amount and name for $ticker:"
 $query "select
   max(asset.id)||'/'||ticker.id asset_ticker,
   ticker.name,
@@ -60,10 +73,10 @@ $query "select
 from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
-where op.created between $interval
+where op.created between $interval $ticker
 group by op.asset_id, ticker.id
 order by
   max(op.currency),
   n desc,
   ticker.name
-" --full
+" $show
