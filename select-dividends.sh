@@ -12,12 +12,12 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-start="(now()::date - interval '1 month')"
-end="now()"
-
 and="1=1"
 ticker="2=2"
 order_by='max(op.created)'
+
+start="(now()::date - interval '1 month')"
+end="now()"
 
 today="now()::date"
 kotoshi=$(now.sh -y)
@@ -66,10 +66,12 @@ do
     --until)
         shift
         cut=$1
-        interval="'1900-01-01' and '$1'"
+        start="'1900-01-01'"
+        and="'$1'"
     ;;
     --all|-a)
-        interval="'1900-01-01' and now()"
+        start="'1900-01-01'"
+        end="now()"
     ;;
     --order-by|-o)
         shift

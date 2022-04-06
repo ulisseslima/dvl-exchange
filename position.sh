@@ -12,6 +12,7 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
+interval="'1900-01-01' and now()"
 ticker=""
 show='--full'
 
@@ -51,7 +52,7 @@ do
     ;;
     --ticker|-t)
       shift
-      ticker="and lower(ticker.name) = '${1,,}'"
+      ticker="and ticker.name ilike '${1,,}%'"
     ;;
     --short)
       show=""
@@ -63,7 +64,11 @@ do
   shift
 done
 
-info "$interval's position, ordered by currency, amount and name for $ticker:"
+info "$interval's position, ordered by currency, amount and name:"
+if [[ -n "$ticker" ]]; then
+  info "$ticker"
+fi
+
 $query "select
   max(asset.id)||'/'||ticker.id asset_ticker,
   ticker.name,

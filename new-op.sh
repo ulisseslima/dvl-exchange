@@ -13,17 +13,19 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
-  info "e.g.: $0 BUY 40 TICKER 677.85 USD '2020-12-02'"
+  info "e.g.: $0 BUY 40 TICKER 677.60 USD '2020-12-02'"
+  info "note: price is the total price (amount*units). you can use math expressions. e.g.:"
+  info "e.g.: $0 BUY 40 TICKER '16.94*40' USD '2020-12-02'"
   exit 0
 fi
 
 kind="${1^^}";      require --in 'BUY SELL' kind
-amount="$2";    require -n amount
+amount="$2";        require -nx amount
 ticker="${3^^}";    require ticker
-price="$4";     require -n price
+price="$4";         require -nx price
 currency="${5^^}";  require currency
-created="$6";   [[ -z "$created" ]] && created=$(now.sh -d)
-inst="$7";      [[ -z "$inst" ]] && inst=undefined
+created="$6";       [[ -z "$created" ]] && created=$(now.sh -d)
+inst="$7";          [[ -z "$inst" ]] && inst=undefined
 
 ticker_id=$($query "select id from tickers where name iLIKE '${ticker}%' limit 1")
 if [[ -z "$ticker_id" ]]; then
@@ -68,7 +70,7 @@ if [[ -n "$id" ]]; then
   if [[ "$kind" == BUY ]]; then
     $query "update assets set
       amount=amount+$amount,
-      cost=cost+($price*$amount),
+      cost=cost+$price,
       value=0
       where id = $asset_id
     "
@@ -76,14 +78,11 @@ if [[ -n "$id" ]]; then
     # NOTE: there's no way to subtract the exact price, after a SELL operation
     $query "update assets set
       amount=amount-$amount,
-      cost=cost-($price*$amount),
+      cost=cost-$price,
       value=0
       where id = $asset_id
     "
   fi
-
-  info "total cost:"
-  inline-java.sh "println($price*$amount);"
 
   # TODO get current value and calculate today's value
   

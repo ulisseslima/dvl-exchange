@@ -18,7 +18,7 @@ if [[ -z "$id" ]]; then
 fi
 
 amount=$($query "select amount from asset_ops where id = $id")
-price=$($query "select amount from asset_ops where id = $id")
+price=$($query "select price from asset_ops where id = $id")
 asset_id=$($query "select asset_id from asset_ops where id = $id")
 
 if [[ -z "$asset_id" ]]; then
@@ -30,4 +30,4 @@ info "will delete op #$id {price: $price, amount: $amount}, confirm?"
 read confirmation
 
 $query "delete from asset_ops where id = $id"
-$query "update assets set amount = amount - $amount, price = price - $price where id = $asset_id"
+$query "update assets set amount = amount - $amount, cost = cost - $price where id = $asset_id"

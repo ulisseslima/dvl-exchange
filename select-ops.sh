@@ -12,10 +12,15 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-filter="(now()::date - interval '1 month')"
 and="1=1"
 ticker="2=2"
-order_by='max(op.created) desc'
+order_by='max(op.created)'
+
+start="(now()::date - interval '1 month')"
+end="now()"
+
+today="now()::date"
+kotoshi=$(now.sh -y)
 
 while test $# -gt 0
 do
@@ -28,28 +33,45 @@ do
         shift
         ticker="ticker.name ilike '$1%'"
     ;;
-    --filter|-f)
+    --today)
+        start="$today"
+        end="($today + interval '1 day')"
+    ;;
+    --week|-w)
+        start="($today - interval '1 week')"
+        end="$today"
+    ;;
+    --month|-m)
+        if [[ -n "$2" && "$2" != "-"* ]]; then
+            shift
+            m=$1
+            start="'$kotoshi-$m-01'"
+            end="('$kotoshi-$m-01'::timestamp + interval '1 month')"
+        else
+            start="($today - interval '1 month')"
+            end="$today"
+        fi
+    ;;
+    --year|-y)
+        if [[ "$2" != "-"* ]]; then
+            shift
+            y=$1
+            start="'$y-01-01'"
+            end="('$y-01-01'::timestamp + interval '1 year')"
+        else
+            start="($today - interval '1 year')"
+            end="$today"
+        fi
+    ;;
+    --until)
         shift
-        case "$1" in
-            today)
-                filter='now()::date'
-            ;;
-            week)
-                filter="(now()::date - interval '1 week')"
-            ;;
-            month)
-                filter="(now()::date - interval '1 month')"
-            ;;
-            year)
-                filter="(now()::date - interval '1 year')"
-            ;;
-            none)
-                filter="'2000-01-01'"
-            ;;
-        esac
+        cut=$1
+        start="'1900-01-01'"
+        and="'$1'"
     ;;
     --all|-a)
-        filter="'2000-01-01'"
+        start="'1900-01-01'"
+        end="now()"
     ;;
     --order-by|-o)
         shift
@@ -62,10 +84,12 @@ do
     shift
 done
 
+interval="$start and $end"
+
 rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 require rate
 
-info "ops since '$($query "select $filter")'"
+info "ops between $($query "select $start") and $($query "select $end")"
 $query "select
   max(asset.id)||'/'||ticker.id \"ass/tick\",
   ticker.name,
@@ -75,7 +99,7 @@ $query "select
 from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
-where op.created > $filter
+where op.created between $interval
 and $and
 and $ticker
 group by op.id, ticker.id
