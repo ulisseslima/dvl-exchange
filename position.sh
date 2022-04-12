@@ -20,19 +20,19 @@ today="now()::date"
 while test $# -gt 0
 do
   case "$1" in
-    --all)
+    --all|-a)
       interval="'1900-01-01' and now()"
     ;;
-    --today)
+    --today|-n)
       interval="$today and ($today + interval '1 day')"
     ;;
-    --week)
+    --week|-w)
       interval="($today - interval '1 week') and $today"
     ;;
-    --month)
+    --month|-m)
       interval="($today - interval '1 month') and $today"
     ;;
-    --year)
+    --year|-y)
       if [[ -n "$2" && "$2" != "-"* ]]; then
         shift
         y=$1
@@ -41,12 +41,12 @@ do
         interval="($today - interval '1 year') and $today"
       fi
     ;;
-    --until)
+    --until|-u)
       shift
       cut=$1
       interval="'1900-01-01' and '$1'"
     ;;
-    --custom)
+    --custom|-c)
       shift
       interval="$1"
     ;;
@@ -54,7 +54,7 @@ do
       shift
       ticker="and ticker.name ilike '${1,,}%'"
     ;;
-    --short)
+    --short|-s)
       show=""
     ;;
     -*)
@@ -74,7 +74,8 @@ $query "select
   ticker.name,
   sum(op.amount) as n,
   sum(op.price) as cost,
-  max(op.currency) currency
+  max(op.currency) currency,
+  round(sum(op.price*op.rate), 2) as brl
 from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id

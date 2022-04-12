@@ -31,6 +31,7 @@ do
     ;;
     --ticker|-t)
         shift
+        # eg for many tickers: TICKER_A|TICKER_B...
         ticker="ticker.name ~* '$1'"
     ;;
     --today)
@@ -63,11 +64,11 @@ do
             end="$today"
         fi
     ;;
-    --until)
+    --until|-u)
         shift
         cut=$1
         start="'1900-01-01'"
-        and="'$1'"
+        end="'$1'"
     ;;
     --all|-a)
         start="'1900-01-01'"
@@ -95,7 +96,7 @@ $query "select
   ticker.name,
   round((1 * op.price::numeric / op.amount::numeric), 2) as unit,
   op.*,
-  (case when op.currency = 'USD' then (price*coalesce(op.rate, $rate))::text else '-' end) BRL
+  (case when op.currency = 'USD' then round((price*coalesce(op.rate, $rate)),2)::text else '-' end) BRL
 from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
