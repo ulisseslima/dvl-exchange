@@ -12,7 +12,7 @@ URL=$API_CEI_URL
 function do_request() {
 	local method="$1"; shift
 	local endpoint="$1"; shift
-	local body="$1"; shift
+	local params="$1"; shift
 
 	local curl_opts="--progress-bar -k"
 	if [[ $(debugging) == on ]]; then
@@ -22,16 +22,15 @@ function do_request() {
 	local query_key="$(cei_api_query_key)"
 	local auth_header="$(cei_api_auth_header)"
 
-	debug "$curl_opts -X $method $URL/$endpoint"
-	debug "$query_key"
-	debug "body: $body"
+	request="$URL/$endpoint?$query_key&$params"
+	debug "$curl_opts -X $method $request"
 
-	local request_cache="$CACHE/$1-$2.request.json"
-	curl $curl_opts -X $method "$URL/$endpoint?$query_key"\
+	local request_cache="$CACHE/$1-$2-$3.request.json"
+	curl $curl_opts -X $method "$request"\
 		-H "Authorization: Bearer $auth_header"
 }
 
-endpoint="$1-$2"
+endpoint="$1-$2-$3"
 out="$CACHE/$endpoint.response.json"
 mkdir -p $(dirname "$out")
 last_response=$(last_response_minutes "$out")

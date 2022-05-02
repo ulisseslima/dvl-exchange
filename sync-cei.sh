@@ -12,8 +12,14 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-info "updating with CEI ..."
-response=$($MYDIR/api-cei.sh GET "extrato/v1/movimentacao/ultimas")
+start=$($query "select date_trunc('day',created)::date from dividends where currency = 'BRL' order by created desc limit 1")
+# cei apparently requires a very specific end date:
+end=$(dop.sh "(now() - interval '3 days')::date")
+
+info "updating with CEI ... date range: $start to $end"
+# 'ultimas' is easier to use but very limited. no timestamps and only last week range
+#response=$($MYDIR/api-cei.sh GET "extrato/v1/movimentacao/ultimas")
+response=$($MYDIR/api-cei.sh GET "extrato-movimentacao/v1.1/movimentacao/1" "dataInicio=$start&dataFim=$end")
 echo "$response"
 
 if [[ -z "$response" ]]; then
