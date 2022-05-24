@@ -106,5 +106,7 @@ $query "select
   join stores store on store.id=op.store_id  
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
-order by unit 
+order by 
+  unit,
+  op.created desc
 limit $limit" --full
