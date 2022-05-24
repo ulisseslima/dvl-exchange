@@ -85,13 +85,14 @@ if [[ -z "$store_id" ]]; then
   echo "#$store_id"
 fi
 
-product_id=$($query "select id from products where (name = '${product_name}' or name iLIKE '%${product_name}%') and brand iLIKE '%${product_brand}%' limit 1")
+product_id=$($query "select id from products where (name = '${product_name}' or name iLIKE '%${product_name}%') and brand iLIKE '%${product_brand}%' order by name limit 1")
 if [[ -z "$product_id" ]]; then
   info "creating new product: $product_name ($product_brand)"
   product_id=$($query "insert into products (name, brand, tags, extra) values ('$product_name', '$product_brand', $tags, $extra) returning id")
   echo "#$product_id"
 else
-  info "updating product #$product_id: $product_name ($product_brand)"
+  original_product=$($query "select name from products where id = $product_id")
+  info "updating product #$product_id: $original_product ($product_brand)"
   $query "update products set tags=tags || $tags, extra=extra || $extra where id = $product_id"
 fi
 
