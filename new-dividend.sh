@@ -13,7 +13,7 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
-  info "e.g.: $0 AGG 2.41 2022-03-08"
+  info "usage example: $0 AGG 2.41 2022-03-08"
   exit 0
 fi
 

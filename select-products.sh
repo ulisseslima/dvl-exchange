@@ -14,7 +14,8 @@ query=$MYDIR/psql.sh
 
 and="1=1"
 brand="2=2"
-order_by='total_amount desc'
+#order_by='total_amount desc'
+order_by='total_spent desc'
 
 start="(now()::date - interval '1 month')"
 end="now()"

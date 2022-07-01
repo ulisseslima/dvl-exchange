@@ -94,8 +94,15 @@ info "dividends between $($query "select $start") and $($query "select $end")"
 $query "select
   op.ticker_id,
   ticker.name,
-  op.*,
-  (case when op.currency = 'USD' then round((total*$rate), 2)::text else total::text end) BRL
+  op.id as op_id,
+  op.created,
+  round(op.value, 2) as value,
+  op.amount,
+  op.total,
+  op.currency,
+  round(op.rate, 2) as rate,
+  (case when op.currency = 'USD' then round((total*$rate), 2)::text else total::text end) BRL,
+  round(total/amount, 2) unit
 from dividends op
 join tickers ticker on ticker.id=op.ticker_id
 where op.created between $interval
@@ -106,16 +113,23 @@ order by
   $order_by
 " --full
 
-info "sum (BRL):"
-$query "select round(sum(
-  (case when op.currency = 'USD' then 
-    (total*$rate) else 
-    total 
-  end)
-), 2)
+info "sum:"
+$query "select 
+  round(sum(
+    (case when op.currency = 'USD' then 
+      (total*$rate) else 
+      total 
+    end)
+  ), 2) BRL,
+  round(sum(
+    (case when op.currency = 'BRL' then 
+      (total/$rate) else 
+      total 
+    end)
+  ), 2) USD
 from dividends op
 join tickers ticker on ticker.id=op.ticker_id
 where op.created between $interval
 and $and
 and $ticker
-"
+" --full
