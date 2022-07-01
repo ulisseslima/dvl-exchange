@@ -26,6 +26,7 @@ function do_request() {
 	debug "$curl_opts -X $method $request"
 
 	local request_cache="$CACHE/$1-$2-$3.request.json"
+	debug "curl $curl_opts -X $method '$request' -H 'Authorization: Bearer $auth_header'"
 	curl $curl_opts -X $method "$request"\
 		-H "Authorization: Bearer $auth_header"
 }

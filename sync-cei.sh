@@ -19,7 +19,8 @@ end=$(dop.sh "(now() - interval '3 days')::date")
 info "updating with CEI ... date range: $start to $end"
 # 'ultimas' is easier to use but very limited. no timestamps and only last week range
 #response=$($MYDIR/api-cei.sh GET "extrato/v1/movimentacao/ultimas")
-response=$($MYDIR/api-cei.sh GET "extrato-movimentacao/v1.1/movimentacao/1" "dataInicio=$start&dataFim=$end")
+#response=$($MYDIR/api-cei.sh GET "extrato-movimentacao/v1.1/movimentacao/1" "dataInicio=2022-05-31&dataFim=2022-06-30")
+response=$($MYDIR/api-cei.sh GET "extrato-movimentacao/v1.2/movimentacao/1" "dataInicio=$start&dataFim=$end")
 echo "$response"
 
 if [[ -z "$response" ]]; then
