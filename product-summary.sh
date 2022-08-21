@@ -71,7 +71,8 @@ done
 
 info "latest buys:"
 $query "select 
-  op.id, store.name, product.name, product.brand, op.created, price, amount, round((1 * price / amount), 2) as unit
+  op.id op, store.name store, product.name product, product.brand, op.created, 
+  price, amount, round((1 * price / amount), 2) as unit
   from product_ops op
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
@@ -83,7 +84,7 @@ limit $latest" --full
 info "average price considering period from '$period' $interval:"
 $query "select
     product.id,
-    product.name, 
+    product.name product,
     product.brand,
     round(avg(price), 2) as price,
     round((1 * sum(price) / sum(amount)), 2) as unit,
@@ -100,7 +101,8 @@ order by max(op.created) desc
 
 info "cheapest buys:"
 $query "select 
-  op.id, store.name, product.name, product.brand, op.created, price, amount, round((1 * price / amount), 2) as unit
+  op.id op, store.name store, product.name product, product.brand, op.created, 
+  price, amount, round((1 * price / amount), 2) as unit
   from product_ops op
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
