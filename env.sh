@@ -98,3 +98,17 @@ function last_response_minutes() {
 	local secs=$(echo $(($(date +%s) - $(stat -c %Y -- "$file"))))
 	echo $((${secs}/60))
 }
+
+function replace_all() {
+    input="$1"
+    search="$2"
+    replace="$3"
+
+    echo "$input" | sed "s/$search/$replace/g"
+}
+
+function blanks() {
+    input="$1"
+
+    echo "$input" | sed "s/./ /g"
+}
