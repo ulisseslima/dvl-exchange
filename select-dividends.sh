@@ -113,17 +113,19 @@ order by
   $order_by
 " --full
 
-info "sum:"
+info "aggregated sum [same value, different currencies]:"
 $query "select 
   round(sum(
     (case when op.currency = 'USD' then 
-      (total*$rate) else 
+      (total*$rate) 
+      else 
       total 
     end)
   ), 2) BRL,
   round(sum(
     (case when op.currency = 'BRL' then 
-      (total/$rate) else 
+      (total/$rate) 
+      else 
       total 
     end)
   ), 2) USD

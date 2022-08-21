@@ -108,5 +108,5 @@ $query "select
   and $brand
 order by 
   unit,
-  op.created desc
+  op.created
 limit $limit" --full
