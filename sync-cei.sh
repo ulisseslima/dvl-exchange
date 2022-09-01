@@ -28,7 +28,7 @@ if [[ -z "$response" ]]; then
     exit 1
 fi
 
-if [[ "$response" == *"Authorization Required"* ]]; then
+if [[ "$response" == not-authorized ]]; then
     err "logged out. you need to update key info in $LOCAL_ENV - https://www.investidor.b3.com.br/"
     exit 7
 fi

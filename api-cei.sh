@@ -47,8 +47,10 @@ else
 fi
 
 response=$(do_request "$@")
-if [[ "$response" == *"Authorization Required"* ]]; then
+if [[ "$response" == *"Authorization Required"* || "$response" == *"Sem autorizacao para consumir a API"* ]]; then
     info "not caching error response"
+	>&2 echo "$response"
+	response=not-authorized
 else
 	echo "$response" > "$out"
 	debug "response cached to $out"
