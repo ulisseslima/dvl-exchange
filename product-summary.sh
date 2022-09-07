@@ -38,6 +38,13 @@ do
       shift
       latest=$1
     ;;
+    --month|-m)
+      shift
+      month="$1"
+      
+      period="$(now.sh -y)-$month-01"
+      interval="('$period'::date+interval '1 month')"
+    ;;
     --period)
       shift
       period="$1"

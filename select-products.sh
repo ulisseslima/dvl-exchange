@@ -30,9 +30,14 @@ do
         shift
         and="$1"
     ;;
+    --name|-p)
+        shift
+        name="$1"
+        and="$and and product.name=upper('$name')"
+    ;;
     --brand|-b)
         shift
-        # eg for many brands: TICKER_A|TICKER_B...
+        # eg for many brands: BRAND_A|BRAND_B...
         brand="brand ~* '$1'"
     ;;
     --today)
@@ -110,6 +115,7 @@ info "total spending of products between $($query "select $start") and $($query 
 $query "select
   round(sum(op.price), 2) as total
 from product_ops op
+join products product on product.id=op.product_id
 where op.created between $interval
 and $and
 and $brand
