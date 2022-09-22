@@ -79,7 +79,7 @@ done
 info "latest buys:"
 $query "select 
   op.id op, store.name store, product.name product, product.brand, op.created, 
-  price, amount, round((1 * price / amount), 2) as unit
+  price, op.currency cur, amount, round((1 * price / amount), 2) as unit
   from product_ops op
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
@@ -94,6 +94,7 @@ $query "select
     product.name product,
     product.brand,
     round(avg(price), 2) as price,
+    max(op.currency) cur,
     round((1 * sum(price) / sum(amount)), 2) as unit,
     product.extra->'carbs' \"carbs%\"
   from product_ops op
@@ -109,7 +110,9 @@ order by max(op.created) desc
 info "cheapest buys:"
 $query "select 
   op.id op, store.name store, product.name product, product.brand, op.created, 
-  price, amount, round((1 * price / amount), 2) as unit
+  price, 
+  op.currency cur,
+  amount, round((1 * price / amount), 2) as unit
   from product_ops op
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
