@@ -26,8 +26,11 @@ if [[ $# -lt 1 ]]; then
 fi
 
 institution="${1^^}"; require institution
-total="$2";           require -n total
-currency="$3";        require currency
+shift
+total="$1";           require -n total
+shift
+currency="$1";        require currency
+shift
 
 while test $# -gt 0
 do
@@ -44,7 +47,7 @@ do
       shift
       rate="$1"
     ;;
-    -*) 
+    *) 
       echo "bad option '$1'"
       exit 1
     ;;
@@ -55,6 +58,7 @@ done
 [[ -z "$created" ]] && created="$(now.sh -d)"
 
 require --one amount rate
+echo "amount: $amount - rate: $rate"
 
 if [[ -n "$rate" ]]; then
   amount=$(echo "scale=2; $total/$rate" | bc)
