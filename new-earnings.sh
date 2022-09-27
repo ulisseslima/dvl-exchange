@@ -47,6 +47,9 @@ do
       shift
       rate="$1"
     ;;
+    --full-time)
+      amount=160
+    ;;
     *) 
       echo "bad option '$1'"
       exit 1
