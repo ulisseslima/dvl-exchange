@@ -34,10 +34,13 @@ shift
 
 while test $# -gt 0
 do
-    case "$1" in
+  case "$1" in
     --date|-d)
       shift 
       created="$1"
+      if [[ "$created" != *':'* ]]; then
+        created="$created $(now.sh -t)"
+      fi
     ;;
     --amount|-a)
       shift
@@ -54,11 +57,11 @@ do
       echo "bad option '$1'"
       exit 1
     ;;
-    esac
-    shift
+  esac
+  shift
 done
 
-[[ -z "$created" ]] && created="$(now.sh -d)"
+[[ -z "$created" ]] && created="$(now.sh -dt)"
 
 require --one amount rate
 echo "amount: $amount - rate: $rate"

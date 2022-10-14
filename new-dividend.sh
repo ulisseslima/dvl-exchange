@@ -19,7 +19,7 @@ fi
 
 ticker="${1^^}";  require ticker
 total="$2";       require -n total
-created="$3";     [[ -z "$created" ]] && created=$(now.sh -d)
+created="$3";     [[ -z "$created" ]] && created="$(now.sh -dt)"
 
 ticker_id=$($query "select id from tickers where name iLIKE '${ticker}%' limit 1")
 if [[ -z "$ticker_id" ]]; then

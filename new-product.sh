@@ -28,10 +28,13 @@ extra="'{}'"
 
 while test $# -gt 0
 do
-    case "$1" in
+  case "$1" in
     --date|-d)
       shift 
       created="$1"
+      if [[ "$created" != *':'* ]]; then
+        created="$created $(now.sh -t)"
+      fi
     ;;
     --currency|-c)
       shift
@@ -60,11 +63,12 @@ do
       echo "bad option '$1'"
       exit 1
     ;;
-    esac
-    shift
+  esac
+
+  shift
 done
 
-[[ -z "$created" ]] && created="$(now.sh -d)"
+[[ -z "$created" ]] && created="$(now.sh -dt)"
 [[ -z "$currency" ]] && currency=$DEFAULT_CURRENCY
 
 if [[ -n "$expression" ]]; then
