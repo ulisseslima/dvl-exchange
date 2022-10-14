@@ -35,7 +35,7 @@ case "$fname" in
     ;;
 esac
 
-info "$fname's snapshot, ordered by cheapest average price:"
+info "$fname's snapshot, ordered by cheapest price now:"
 
 $query "select
   (select id from assets where ticker_id=ticker.id) asset_id,
@@ -58,9 +58,12 @@ $query "select
   max(snap.currency) currency
 from snapshots snap
 join tickers ticker on ticker.id=snap.ticker_id
+join snapshots latest on latest.id=snap.id
+left join snapshots latest_x on latest_x.id=snap.id and latest_x.id>latest.id
 where snap.created > $filter
+and latest_x is null
 group by ticker.id
 order by 
   max(snap.currency),
-  avg(snap.price)
+  min(latest.price)
 " --full
