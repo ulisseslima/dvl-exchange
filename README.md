@@ -46,3 +46,6 @@ Example for using `cron` to automatically sync values and create historical data
 ```
 
 It will get prices from all the tickers you registered from 10 am to 18 am, on weekdays.
+
+# Useful Links
+* https://statusinvest.com.br/fundos-imobiliarios/alzr11
