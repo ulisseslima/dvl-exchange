@@ -12,9 +12,14 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
+simulation=false
 interval="'1900-01-01' and now()"
 ticker=""
 show='--full'
+order="max(op.currency),
+  diff desc,
+  n desc
+"
 
 today="now()::date"
 while test $# -gt 0
@@ -57,6 +62,14 @@ do
     --short|-s)
       show=""
     ;;
+    --simulation)
+      simulation=true
+    ;;
+    --order-by-val)
+      order="max(op.currency),
+      curr_val desc,
+      n desc"
+    ;;
     -*)
       echo "bad option '$1'"
     ;;
@@ -64,26 +77,27 @@ do
   shift
 done
 
-info "$interval's position, ordered by currency, amount and name:"
+info "$interval's position, ordered by: $(echo $order):"
 if [[ -n "$ticker" ]]; then
   info "$ticker"
 fi
 
 $query "select
-  max(asset.id)||'/'||ticker.id asset_ticker,
-  ticker.name,
+  max(asset.id)||'/'||ticker.id asstck,
+  ticker.name ticker,
   sum(op.amount) as n,
   sum(op.price) as cost,
-  max(op.currency) currency,
-  round(sum(op.price*op.rate), 2) as brl
+  max(op.currency) as cur,
+  round(sum(op.price*op.rate), 2) as brl,
+  round(price(ticker.id)*sum(op.amount), 2) as curr_val,
+  percentage_diff(price(ticker.id)*sum(op.amount), sum(op.price)) as diff
 from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
 where op.created between $interval 
+and simulation is $simulation
 $ticker
 group by op.asset_id, ticker.id
 order by
-  max(op.currency),
-  n desc,
-  ticker.name
+  $order
 " $show

@@ -13,9 +13,10 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
-  info "e.g.: $0 BUY 40 TICKER 677.60 USD '2020-12-02'"
+  info "e.g.: $0 BUY 40 TICKER 677.60 USD --date '2020-12-02'"
   info "note: price is the total price (amount*units). you can use math expressions. e.g.:"
-  info "e.g.: $0 BUY 40 TICKER '16.94*40' USD '2020-12-02'"
+  info "e.g.: $0 BUY 40 TICKER '16.94*40' USD"
+  info "date defaults to now if not specified"
   exit 0
 fi
 
@@ -24,8 +25,44 @@ amount="$2";        require -nx amount
 ticker="${3^^}";    require ticker
 price="$4";         require -nx price
 currency="${5^^}";  require currency
-created="$6";       [[ -z "$created" ]] && created=$(now.sh -d)
-inst="$7";          [[ -z "$inst" ]] && inst=undefined
+simulation=false
+
+while test $# -gt 0
+do
+  case "$1" in
+    --date|-d)
+      shift 
+      created="$1"
+      if [[ "$created" != *':'* ]]; then
+        created="$created $(now.sh -t)"
+      fi
+    ;;
+    --tags|-t)
+      shift
+      tags="'${1^^}'"
+    ;;
+    --extra|-e)
+      shift
+      extra="'${1,,}'"
+    ;;
+    --institution|-i)
+      shift
+      inst="'${1^^}'"
+    ;;
+    --simulation)
+      simulation=true
+    ;;
+    -*) 
+      echo "bad option '$1'"
+      exit 1
+    ;;
+  esac
+  
+  shift
+done
+
+[[ -z "$created" ]] && created="$(now.sh -dt)"
+[[ -z "$inst" ]] && inst=undefined
 
 ticker_id=$($query "select id from tickers where name iLIKE '${ticker}%' limit 1")
 if [[ -z "$ticker_id" ]]; then
@@ -58,30 +95,37 @@ else
   info "institution: $institution"
 fi
 
-id=$($query "insert into asset_ops (kind, asset_id, amount, price, currency, created, institution, rate)
-  select '$kind', $asset_id, $amount, $price, '$currency', '$created', '$institution', $rate
+id=$($query "insert into asset_ops (kind, asset_id, amount, price, currency, created, institution, rate, simulation)
+  select '$kind', $asset_id, $amount, $price, '$currency', '$created', '$institution', $rate, $simulation
   returning id
 ")
 
 if [[ -n "$id" ]]; then
   info "success: $id"
-  $query "select ticker.name, op.* from asset_ops op join assets a on a.id=op.asset_id join tickers ticker on ticker.id=a.ticker_id where op.id = $id" --full
+  $query "select ticker.name, op.* 
+    from asset_ops op 
+    join assets a on a.id=op.asset_id 
+    join tickers ticker on ticker.id=a.ticker_id 
+    where op.id = $id 
+    and simulation is $simulation" --full
 
-  if [[ "$kind" == BUY ]]; then
-    $query "update assets set
-      amount=amount+$amount,
-      cost=cost+$price,
-      value=0
-      where id = $asset_id
-    "
-  else
-    # NOTE: there's no way to subtract the exact price, after a SELL operation
-    $query "update assets set
-      amount=amount-$amount,
-      cost=cost-$price,
-      value=0
-      where id = $asset_id
-    "
+  if [[ $simulation != true ]]; then
+    if [[ "$kind" == BUY ]]; then
+      $query "update assets set
+        amount=amount+$amount,
+        cost=cost+$price,
+        value=0
+        where id = $asset_id
+      "
+    else
+      # NOTE: there's no way to subtract the exact price, after a SELL operation
+      $query "update assets set
+        amount=amount-$amount,
+        cost=cost-$price,
+        value=0
+        where id = $asset_id
+      "
+    fi
   fi
 
   # TODO get current value and calculate today's value

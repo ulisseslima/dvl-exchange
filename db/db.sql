@@ -36,7 +36,8 @@ create table asset_ops (
     currency varchar not null,
     institution varchar,
     rate numeric default 1,
-    created timestamp default now()
+    created timestamp default now(),
+    simulation boolean not null default false
 );
 
 create table snapshots (
@@ -120,7 +121,14 @@ BEGIN
   RETURN _price;
 END;
 $f$ LANGUAGE plpgsql;
-
+--/
+CREATE OR REPLACE FUNCTION percentage_diff(a numeric, b numeric)
+RETURNS NUMERIC AS $f$
+BEGIN
+  RETURN round((a-b)*100/b, 2);
+END;
+$f$ LANGUAGE plpgsql;
+--/
 CREATE OR REPLACE FUNCTION recalculate_assets()
 RETURNS NUMERIC AS $f$
 DECLARE
