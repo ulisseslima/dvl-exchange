@@ -87,7 +87,7 @@ $query "select
   ticker.name ticker,
   sum(op.amount) as n,
   sum(op.price) as cost,
-  max(op.currency) as cur,
+  max(op.currency) as c,
   round(sum(op.price*op.rate), 2) as brl,
   round(price(ticker.id)*sum(op.amount), 2) as curr_val,
   percentage_diff(price(ticker.id)*sum(op.amount), sum(op.price)) as diff
