@@ -8,7 +8,8 @@ create table tickers (
     kind varchar,
     created timestamp default now(),
     public boolean not null default true,
-    value numeric default 0
+    value numeric default 0,
+    score numeric
 );
 
 create table exchanges (

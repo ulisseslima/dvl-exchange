@@ -49,3 +49,4 @@ It will get prices from all the tickers you registered from 10 am to 18 am, on w
 
 # Useful Links
 * https://statusinvest.com.br/fundos-imobiliarios/alzr11
+* https://money.usnews.com/funds/etfs/global-real-estate/vanguard-global-ex-us-real-est-etf/vnqi
