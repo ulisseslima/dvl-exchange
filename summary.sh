@@ -65,6 +65,7 @@ from assets asset
 join tickers ticker on ticker.id=asset.ticker_id
 join snapshots snap on snap.ticker_id=ticker.id
 where snap.created between $interval
+and asset.amount > 0
 group by ticker.id, asset.id
 order by
   max(snap.currency),
