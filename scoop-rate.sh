@@ -27,7 +27,7 @@ do
     ;;
     --date)
       shift
-      date="$1"
+      date="$(echo $1 | cut -d' ' -f1)"
       mode=historical
     ;;
     -*)
