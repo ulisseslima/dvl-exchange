@@ -37,7 +37,7 @@ CSCOOPER_URL='https://api.currencyscoop.com'
 API_CEI_URL='https://investidor.b3.com.br/api'
 
 DB_NAME=$INSTALL_PREFIX
-DB_USER=$USER
+DB_USER=postgres
 
 # minutes before sending a repeated request. helps keeping within daily limits
 API_REQUESTS_INTERVAL=60

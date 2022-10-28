@@ -76,6 +76,9 @@ function uninstall() {
 }
 
 function local_db() {
+    info "$LOCAL_ENV - updating config..."
+    source $LOCAL_ENV
+
     info "checking if dpkg is available..."
     [[ ! -n "$(which dpkg)" ]] && return 0
     
@@ -120,6 +123,7 @@ function local_db() {
 function check_requirements() {
     check_installed python --version
     check_installed xmlstarlet --version
+    check_installed npm -v
 }
 
 ##
@@ -130,7 +134,8 @@ function wizard() {
     check_requirements
     install
 
-    prompt PGPASSWORD "postgres password for $USER"
+    prompt PGPASSWORD "postgres password for user '$DB_USER'"
+    db DB_PASS $PGPASSWORD
     prompt YFAPI_KEY "Yahoo Finance API Key"
     prompt CSCOOP_KEY "Currency Scooper API Key"
     #prompt CEI_KEY_GUID "CEI cache-guid"
