@@ -67,7 +67,7 @@ do
       esac
     ;;
     -*)
-        echo "bad option '$1'"
+        echo "$0 - bad option '$1'"
     ;;
     esac
     shift

@@ -54,7 +54,7 @@ do
       amount=160
     ;;
     *) 
-      echo "bad option '$1'"
+      echo "$0 - bad option '$1'"
       exit 1
     ;;
   esac

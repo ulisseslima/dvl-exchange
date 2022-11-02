@@ -53,7 +53,7 @@ do
       simulation=true
     ;;
     -*) 
-      echo "bad option '$1'"
+      echo "$0 - bad option '$1'"
       exit 1
     ;;
   esac

@@ -79,7 +79,7 @@ do
         order_by="$1"
     ;;
     -*)
-        echo "bad option '$1'"
+        echo "$0 - bad option '$1'"
     ;;
     esac
     shift

@@ -50,7 +50,7 @@ do
         filter="'2000-01-01'"
     ;;
     -*)
-        echo "bad option '$1'"
+        echo "$0 - bad option '$1'"
     ;;
     esac
     shift
