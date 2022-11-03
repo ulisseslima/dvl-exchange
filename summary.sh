@@ -12,19 +12,27 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-fname=${1:---month}
+simulation=false
 today="now()::date"
-case "$fname" in
-    --today)
+fname=month
+interval="($today - interval '1 month') and $today"
+
+while test $# -gt 0
+do
+  case "$1" in
+      --today)
         interval="$today and ($today + interval '1 day')"
-    ;;
-    --week)
+        fname=today
+      ;;
+      --week)
         interval="($today - interval '1 week') and $today"
-    ;;
-    --month)
+        fname=week
+      ;;
+      --month)
         interval="($today - interval '1 month') and $today"
-    ;;
-    --year)
+        fname=month
+      ;;
+      --year)
         if [[ "$2" != "-"* ]]; then
           shift
           y=$1
@@ -32,17 +40,24 @@ case "$fname" in
         else
           interval="($today - interval '1 year')"
         fi
-    ;;
-    --custom)
+        fname=year
+      ;;
+      --custom)
         shift
         interval="$1"
-    ;;
-    -*)
+        fname="$interval"
+      ;;
+      --simulation|--sim)
+        simulation=true
+      ;;
+      -*)
         echo "$0 - bad option '$1'"
-    ;;
-esac
+      ;;
+  esac
+  shift
+done
 
-info "$interval's snapshot, ordered by cheapest average price:"
+info "$fname's snapshot, ordered by cheapest average price:"
 $query "select
   asset.id||'/'||ticker.id asset_ticker,
   ticker.name,
@@ -73,35 +88,61 @@ order by
 " --full
 
 exchange=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+# \"$\"
+
+WITH_AGGREGATED_INFO="with
+prices as (
+  select 
+    price(asset.ticker_id) price, 
+    ticker_id 
+  from assets asset
+),
+groups as (
+select
+  ticker.id,
+  ticker.name,
+  sum(op.amount) amount,
+  round(sum(op.price), 2) as cost, 
+  round(max(p.price)*sum(op.amount), 2) as value,
+  op.currency as currency
+from assets asset
+join tickers ticker on ticker.id=asset.ticker_id
+join prices p on p.ticker_id=asset.ticker_id
+join asset_ops op on op.asset_id=asset.id
+where simulation is $simulation
+group by 
+  ticker.id,
+  op.currency
+)"
 
 info "total investment cost/value:"
-
-total_brl=$($query "select sum(value) from assets asset where currency = 'BRL'")
-total_usd_to_brl=$($query "select round(sum(value*$exchange), 2) from assets asset where currency = 'USD'")
-
-$query "select 
-  'BRL' as \"$\", 
-  sum(cost) as cost, 
-  $total_brl as value, 
-  '-' as \"BRL\"
-from assets asset
-where currency = 'BRL'
-union
+$query "$WITH_AGGREGATED_INFO
 select 
-  'USD' as \"$\", 
-  round(sum(cost), 2) as cost, 
-  round(sum(value), 2) as value, 
-  '$total_usd_to_brl' as \"BRL\"
-from assets asset
-where currency = 'USD'
+  currency,
+  sum(cost) as cost,
+  sum(value) as value
+from groups g
+group by g.currency
 " --full
-echo "=$($query "select $total_brl+$total_usd_to_brl") BRL"
+
+info "total:"
+$query "$WITH_AGGREGATED_INFO
+  select round(
+    sum(
+      case 
+        when currency = 'USD' then value*$exchange
+        else value
+      end
+    ), 2) as total
+  from groups g
+"
 
 info "aggregate diff/% increase:"
-$query "select 
+$query "$WITH_AGGREGATED_INFO
+select 
   currency as \"$\",
   round(sum(value)-sum(cost), 2) as diff, 
   round(((sum(value)-sum(cost))*100/sum(value)), 2) as \"%\"
-from assets asset
+from groups g
 group by currency
 " --full

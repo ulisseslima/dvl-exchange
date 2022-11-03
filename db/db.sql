@@ -114,8 +114,25 @@ insert into tickers (name) values ('DVLCUBE');
 --/
 CREATE OR REPLACE FUNCTION price(tickerId BIGINT)
 RETURNS NUMERIC AS $f$
+DECLARE
+  _price numeric;
 BEGIN
   select price from snapshots where ticker_id=tickerId 
+  order by id desc 
+  limit 1 
+  into _price;
+  RETURN _price;
+END;
+$f$ LANGUAGE plpgsql;
+--/
+CREATE OR REPLACE FUNCTION price(tickerId BIGINT, d date)
+RETURNS NUMERIC AS $f$
+DECLARE
+  _price numeric;
+BEGIN
+  select price from snapshots 
+  where ticker_id=tickerId
+  and created < (d+interval '1 day')
   order by id desc 
   limit 1 
   into _price;
@@ -140,6 +157,7 @@ BEGIN
   from (
     select op.asset_id, sum(op.price) as price_sum
     from asset_ops op
+    where op.simulation is false
     group by op.asset_id
   ) as sop
   where sop.asset_id = asset.id;
