@@ -51,6 +51,9 @@ do
     --full)
         ops="c"
     ;;
+    --csv)
+        noop="TODO"
+    ;;
     -*)
         echo "$0 - bad option '$1'"
         exit 6
