@@ -21,18 +21,19 @@ end="now()"
 
 today="now()::date"
 kotoshi=$(now.sh -y)
+simulation=false
 
 while test $# -gt 0
 do
     case "$1" in
-    --where|-w)
-        shift
-        and="$1"
-    ;;
     --ticker|-t)
         shift
         # eg for many tickers: TICKER_A|TICKER_B...
         ticker="ticker.name ~* '$1'"
+    ;;
+    --where|-w)
+        shift
+        and="$1"
     ;;
     --today)
         start="$today"
@@ -78,8 +79,11 @@ do
         shift
         order_by="$1"
     ;;
+    --simulation|--sim)
+        simulation=true
+    ;;
     -*)
-        echo "bad option '$1'"
+        echo "$0 - bad option '$1'"
     ;;
     esac
     shift
@@ -101,6 +105,7 @@ from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
 where op.created between $interval
+and simulation is $simulation
 and $and
 and $ticker
 group by op.id, ticker.id

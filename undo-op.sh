@@ -20,6 +20,7 @@ fi
 amount=$($query "select amount from asset_ops where id = $id")
 price=$($query "select price from asset_ops where id = $id")
 asset_id=$($query "select asset_id from asset_ops where id = $id")
+simulation=$($query "select simulation from asset_ops where id = $id")
 
 if [[ -z "$asset_id" ]]; then
   err "asset op with asset #$asset_id not found"
@@ -30,4 +31,6 @@ info "will delete op #$id {price: $price, amount: $amount}, confirm?"
 read confirmation
 
 $query "delete from asset_ops where id = $id"
-$query "update assets set amount = amount - $amount, cost = cost - $price where id = $asset_id"
+if [[ $simulation != true ]]; then
+  $query "update assets set amount = amount - $amount, cost = cost - $price where id = $asset_id"
+fi

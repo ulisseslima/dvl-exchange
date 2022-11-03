@@ -12,6 +12,7 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
+summary=false
 simulation=false
 interval="'1900-01-01' and now()"
 ticker=""
@@ -62,8 +63,11 @@ do
     --short|-s)
       show=""
     ;;
-    --simulation)
+    --simulation|--sim)
       simulation=true
+    ;;
+    --summary|--sum)
+      summary=true
     ;;
     --order-by-val)
       order="max(op.currency),
@@ -71,7 +75,7 @@ do
       n desc"
     ;;
     -*)
-      echo "bad option '$1'"
+      echo "$0 - bad option '$1'"
     ;;
   esac
   shift
@@ -85,10 +89,10 @@ fi
 $query "select
   max(asset.id)||'/'||ticker.id asstck,
   ticker.name ticker,
-  sum(op.amount) as n,
+  round(sum(op.amount), 2) as n,
   sum(op.price) as cost,
-  max(op.currency) as c,
-  round(sum(op.price*op.rate), 2) as brl,
+  max(op.currency) as \"$\",
+  round(sum(op.price*op.rate), 2) as BRL,
   round(price(ticker.id)*sum(op.amount), 2) as curr_val,
   percentage_diff(price(ticker.id)*sum(op.amount), sum(op.price)) as diff
 from asset_ops op
