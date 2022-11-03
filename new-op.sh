@@ -83,7 +83,7 @@ fi
 
 rate=1
 if [[ "$currency" == USD ]]; then
-  rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+  rate=$($MYDIR/scoop-rate.sh USD -x BRL --date "$created" | jq -r .response.rates.BRL)
   require rate
 fi
 

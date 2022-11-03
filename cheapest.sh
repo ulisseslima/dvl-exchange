@@ -11,29 +11,43 @@ source $MYDIR/log.sh
 source $(real require.sh)
 
 query=$MYDIR/psql.sh
+full='--full'
+filter="(now()::date - interval '1 month')"
+fname=month
 
-fname=${1:---month}
-case "$fname" in
+while test $# -gt 0
+do
+  case "$1" in
     --today)
-        filter='now()::date'
+      filter='now()::date'
+      fname=today
     ;;
     --week)
-        filter="(now()::date - interval '1 week')"
+      filter="(now()::date - interval '1 week')"
+      fname=week
     ;;
     --month)
-        filter="(now()::date - interval '1 month')"
+      filter="(now()::date - interval '1 month')"
+      fname=month
     ;;
     --year)
-        filter="(now()::date - interval '1 year')"
+      filter="(now()::date - interval '1 year')"
+      fname=year
     ;;
     --custom)
-        shift
-        filter="$1"
+      shift
+      filter="$1"
+      fname="$filter"
+    ;;
+    --csv)
+      full='--csv'
     ;;
     -*)
-        echo "bad option '$1'"
+      echo "$0 - bad option '$1'"
     ;;
-esac
+  esac
+  shift
+done
 
 info "$fname's snapshot, ordered by cheapest price now:"
 
@@ -66,4 +80,4 @@ group by ticker.id
 order by 
   max(snap.currency),
   min(latest.price)
-" --full
+" $full

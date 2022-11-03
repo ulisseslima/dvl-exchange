@@ -112,3 +112,9 @@ function blanks() {
 
     echo "$input" | sed "s/./ /g"
 }
+
+##
+# for math ops
+function op() {
+    $MYDIR/psql.sh "select round(($1), 2)"
+}
