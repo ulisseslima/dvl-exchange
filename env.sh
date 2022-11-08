@@ -116,5 +116,13 @@ function blanks() {
 ##
 # for math ops
 function op() {
-    $MYDIR/psql.sh "select round(($1), 2)"
+    round=2
+    result=0.00
+
+    while [[ $result == 0.00 ]]; do
+        result=$($MYDIR/psql.sh "select round(($1), $round)")
+        round=$((round+2))
+    done
+
+    echo $result
 }
