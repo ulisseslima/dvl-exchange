@@ -16,6 +16,26 @@ start=$($query "select date_trunc('day',created)::date from dividends where curr
 # cei apparently requires a very specific end date:
 end=$(dop.sh "(now() - interval '3 days')::date")
 
+while test $# -gt 0
+do
+  case "$1" in
+    --start)
+      shift
+      start="${1}"
+    ;;
+    --end)
+      shift 
+      end="$1"
+    ;;
+    -*) 
+      echo "$0 - bad option '$1'"
+      exit 1
+    ;;
+  esac
+  
+  shift
+done
+
 info "updating with CEI ... date range: $start to $end"
 # 'ultimas' is easier to use but very limited. no timestamps and only last week range
 #response=$($MYDIR/api-cei.sh GET "extrato/v1/movimentacao/ultimas")
