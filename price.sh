@@ -35,6 +35,6 @@ $query "select
   max(snap.currency) currency
 from snapshots snap
 join tickers ticker on ticker.id=snap.ticker_id
-where ticker.name = '$ticker'
+where ticker.name like '${ticker}%'
 group by ticker.id
 " $mode
