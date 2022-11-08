@@ -49,7 +49,7 @@ do
       shift
       inst="'${1^^}'"
     ;;
-    --simulation)
+    --simulation|--sim)
       simulation=true
     ;;
     -*) 
