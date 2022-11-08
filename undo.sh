@@ -17,6 +17,7 @@ if [[ -z "$id" ]]; then
   id=$($query "select id from $table order by id desc limit 1")
 fi
 
+$query "select * from $table where id = $id" --full
 info "will delete $table #$id, confirm?"
 read confirmation
 
