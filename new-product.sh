@@ -29,7 +29,7 @@ extra="'{}'"
 while test $# -gt 0
 do
   case "$1" in
-    --date|-d)
+    --date|-d|--created)
       shift 
       created="$1"
       if [[ "$created" != *':'* ]]; then

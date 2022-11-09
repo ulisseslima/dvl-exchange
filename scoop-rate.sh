@@ -25,7 +25,7 @@ do
       shift
       symbols="$1"
     ;;
-    --date)
+    --date|--created)
       shift
       date="$(echo $1 | cut -d' ' -f1)"
       mode=historical
