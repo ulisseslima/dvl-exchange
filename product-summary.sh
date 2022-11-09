@@ -16,7 +16,12 @@ product_name="${1^^}"
 require product_name
 shift
 
+if [[ "$product_name" == '*' || "$product_name" == 'ANY' ]]; then
+  product_name='%'
+fi
+
 brand="product.brand=product.brand"
+store="store.id=store.id"
 limit=5
 latest=$limit
 
@@ -27,12 +32,16 @@ while test $# -gt 0
 do
     case "$1" in
     --brand|-b)
-        shift
-        brand="product.brand ilike '%$1%'"
+      shift
+      brand="product.brand ilike '%$1%'"
+    ;;
+    --store|-s)
+      shift
+      store="store.name ilike '%$1%'"
     ;;
     --limit|-l)
-        shift
-        limit="$1"
+      shift
+      limit="$1"
     ;;
     --latest)
       shift
@@ -76,7 +85,7 @@ done
 #info "total bought:"
 #$query "select sum(price) from product_ops where product_id = $product_id"
 
-info "latest buys:"
+info "$store - $product_name [$brand] - latest buys:"
 $query "select 
   op.id op, store.name store, product.name product, product.brand, op.created, 
   price, op.currency cur, amount, round((1 * price / amount), 2) as unit
@@ -85,6 +94,7 @@ $query "select
   join stores store on store.id=op.store_id  
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
+  and $store
 order by op.created desc, op.id desc 
 limit $latest" --full
 
@@ -102,6 +112,7 @@ $query "select
   join stores store on store.id=op.store_id  
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
+  and $store
   and op.created between '$period' and $interval
 group by product.id, product.brand
 order by max(op.created) desc 
@@ -118,6 +129,7 @@ $query "select
   join stores store on store.id=op.store_id  
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
+  and $store
 order by 
   unit,
   op.created
