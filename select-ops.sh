@@ -12,7 +12,6 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
-and="1=1"
 ticker="2=2"
 order_by='max(op.created)'
 
@@ -82,6 +81,10 @@ do
     --simulation|--sim)
         simulation=true
     ;;
+    --currency|-c)
+        shift
+        and="$and and op.currency='${1^^}'"
+    ;;
     -*)
         echo "$0 - bad option '$1'"
     ;;
@@ -105,8 +108,8 @@ from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
 where op.created between $interval
+$and
 and simulation is $simulation
-and $and
 and $ticker
 group by op.id, ticker.id
 order by
