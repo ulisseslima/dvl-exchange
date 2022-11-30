@@ -78,7 +78,15 @@ fi
 asset_currency=$($query "select currency from assets where id = $asset_id")
 if [[ "$asset_currency" != "$currency" ]]; then
   err "operation does not match asset currency: $currency <> $asset_currency"
-  exit 4
+  exchange=$($MYDIR/scoop-rate.sh $asset_currency -x $currency | jq -r .response.rates.$currency)
+  require exchange
+
+  exchanged=$(op $price/$exchange)
+  info "accept conversion of $price $currency to $exchanged ${asset_currency}?"
+  read confirmation
+
+  price=$exchanged
+  currency=$asset_currency
 fi
 
 rate=1
