@@ -87,7 +87,8 @@ create table product_ops (
     amount numeric not null default 1,
     currency varchar,
     hidden boolean not null default false,
-    tags varchar
+    tags varchar,
+    simulation boolean not null default false
 );
 
 create table institutions (

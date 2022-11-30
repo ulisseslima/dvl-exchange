@@ -20,6 +20,7 @@ if [[ "$product_name" == '*' || "$product_name" == 'ANY' ]]; then
   product_name='%'
 fi
 
+simulation=false
 brand="product.brand=product.brand"
 store="store.id=store.id"
 limit=5
@@ -31,6 +32,9 @@ interval="('$period'::date+interval '1 year')"
 while test $# -gt 0
 do
     case "$1" in
+    --simulation|--sim)
+      simulation=true
+    ;;
     --brand|-b)
       shift
       brand="product.brand ilike '%$1%'"
@@ -95,6 +99,7 @@ $query "select
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
   and $store
+  and simulation is $simulation
 order by op.created desc, op.id desc 
 limit $latest" --full
 
@@ -113,6 +118,7 @@ $query "select
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
   and $store
+  and simulation is $simulation
   and op.created between '$period' and $interval
 group by product.id, product.brand
 order by max(op.created) desc 
@@ -130,6 +136,7 @@ $query "select
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
   and $store
+  and simulation is $simulation
 order by 
   unit,
   op.created

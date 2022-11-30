@@ -24,6 +24,7 @@ amount="$1";              require -nx amount; shift
 price="$1";               require -nx price; shift
 tags=null
 hide=false
+simulation=false
 extra="'{}'"
 
 while test $# -gt 0
@@ -58,6 +59,9 @@ do
     ;;
     --hide)
       hide=true
+    ;;
+    --simulation|--sim)
+      simulation=true
     ;;
     -*) 
       echo "$0 - bad option '$1'"
@@ -100,8 +104,8 @@ else
   $query "update products set tags=tags || $tags, extra=extra || $extra where id = $product_id"
 fi
 
-id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created, hidden)
-  select $store_id, $product_id, $amount, $price, '$currency', '$created', $hide
+id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created, hidden, simulation)
+  select $store_id, $product_id, $amount, $price, '$currency', '$created', $hide, $simulation
   returning id
 ")
 
