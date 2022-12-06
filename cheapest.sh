@@ -18,19 +18,19 @@ fname=month
 while test $# -gt 0
 do
   case "$1" in
-    --today)
+    --today|-t)
       filter='now()::date'
       fname=today
     ;;
-    --week)
+    --week|-w)
       filter="(now()::date - interval '1 week')"
       fname=week
     ;;
-    --month)
+    --month|-m)
       filter="(now()::date - interval '1 month')"
       fname=month
     ;;
-    --year)
+    --year|-y)
       filter="(now()::date - interval '1 year')"
       fname=year
     ;;
