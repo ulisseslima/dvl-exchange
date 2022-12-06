@@ -78,6 +78,7 @@ if [[ -z "$institution_id" ]]; then
   info "insert?"
   read confirmation
   $query "insert into institutions (id) values ('$institution')"
+  institution_id=$($query "select id from institutions where id iLIKE '${institution}%' limit 1")
 fi
 
 rate=1
