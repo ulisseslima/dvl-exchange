@@ -25,10 +25,12 @@ do
       shift
       symbols="$1"
     ;;
-    --date|--created)
+    --date|--created|-d)
       shift
       date="$(echo $1 | cut -d' ' -f1)"
       mode=historical
+
+      info "data from $date"
     ;;
     -*)
       echo "$0 - bad option '$1'"
