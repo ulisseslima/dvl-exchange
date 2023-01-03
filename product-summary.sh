@@ -101,7 +101,7 @@ $query "select
   and $store
   and simulation is $simulation
 order by op.created desc, op.id desc 
-limit $latest" --full
+limit $limit" --full
 
 info "average price considering period from '$period' $interval:"
 $query "select
