@@ -19,6 +19,7 @@ start="(now()::date - interval '1 month')"
 end="now()"
 
 today="now()::date"
+this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
 simulation=false
 
@@ -46,8 +47,11 @@ do
         if [[ -n "$2" && "$2" != "-"* ]]; then
             shift
             m=$1
-            start="'$kotoshi-$m-01'"
-            end="('$kotoshi-$m-01'::timestamp + interval '1 month')"
+            
+            [[ $this_month -ge $m ]] && year=$kotoshi || year=$(($kotoshi-1))
+
+            start="'$year-$m-01'"
+            end="('$year-$m-01'::timestamp + interval '1 month')"
         else
             start="($today - interval '1 month')"
             end="$today"

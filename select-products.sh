@@ -21,6 +21,7 @@ start="(now()::date - interval '1 month')"
 end="now()"
 
 today="now()::date"
+this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
 
 while test $# -gt 0
@@ -34,6 +35,11 @@ do
         shift
         name="$1"
         and="$and and product.name=upper('$name')"
+    ;;
+    --store|-s|--from)
+        shift
+        name="$1"
+        and="$and and upper(store.name) like '%${name^^}%'"
     ;;
     --brand|-b)
         shift
@@ -52,8 +58,11 @@ do
         if [[ -n "$2" && "$2" != "-"* ]]; then
             shift
             m=$1
-            start="'$kotoshi-$m-01'"
-            end="('$kotoshi-$m-01'::timestamp + interval '1 month')"
+            
+            [[ $this_month -ge $m ]] && year=$kotoshi || year=$(($kotoshi-1))
+
+            start="'$year-$m-01'"
+            end="('$year-$m-01'::timestamp + interval '1 month')"
         else
             start="($today - interval '1 month')"
             end="$today"
@@ -116,6 +125,7 @@ $query "select
   round(sum(op.price), 2) as total
 from product_ops op
 join products product on product.id=op.product_id
+join stores store on store.id=op.store_id
 where op.created between $interval
 and $and
 and $brand
