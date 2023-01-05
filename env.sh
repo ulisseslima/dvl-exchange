@@ -126,3 +126,12 @@ function op() {
 
     echo $result
 }
+
+##
+# for date ops
+function interval() {
+    op="$1"
+    interval="$2"
+
+    $MYDIR/psql.sh "select now() $op interval '$interval'"
+}
