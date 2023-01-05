@@ -26,7 +26,7 @@ store="store.id=store.id"
 limit=5
 latest=$limit
 
-period="$(now.sh -y)-01-01"
+period="$(interval - '1 year')"
 interval="('$period'::date+interval '1 year')"
 
 while test $# -gt 0
