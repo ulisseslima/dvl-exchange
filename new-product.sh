@@ -20,6 +20,7 @@ fi
 store_name="${1^^}";      require --nan store_name; shift
 product_name="${1^^}";    require --nan product_name; shift
 product_brand="${1^^}";   require --nan product_brand; shift
+# input 0 to load the last amount purchased for this product
 amount="$1";              require -nx amount; shift
 price="$1";               require -nx price; shift
 tags=null
@@ -102,6 +103,15 @@ else
   original_product=$($query "select name from products where id = $product_id")
   info "updating product #$product_id: $original_product ($product_brand)"
   $query "update products set tags=tags || $tags, extra=extra || $extra where id = $product_id"
+fi
+
+if [[ $amount == 0 ]]; then
+  amount=$($query "select amount from product_ops where product_id = $product_id order by id desc limit 1")
+  if [[ -z "$amount" ]]; then
+    err "no prior op for $product_name"
+    exit 1
+  fi
+  info "using last amount: $amount"
 fi
 
 id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created, hidden, simulation)
