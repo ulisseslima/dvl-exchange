@@ -13,7 +13,7 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 full='--full'
 filter="(now()::date - interval '1 month')"
-fname=month
+fname=year
 
 while test $# -gt 0
 do
@@ -79,5 +79,5 @@ and latest_x is null
 group by ticker.id
 order by 
   max(snap.currency),
-  min(latest.price)
+  (select price(ticker.id)-(min(snap.price)))
 " $full
