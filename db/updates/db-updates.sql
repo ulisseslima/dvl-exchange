@@ -7,5 +7,6 @@ create table earnings (
     amount numeric not null,
     total numeric not null,
     currency varchar not null,
-    rate numeric default 1
+    rate numeric default 1,
+    details varchar
 );
