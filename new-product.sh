@@ -90,7 +90,11 @@ fi
 store_id=$($query "select id from stores where name = '${store_name}' or name iLIKE '%${store_name}%' limit 1")
 if [[ -z "$store_id" ]]; then
   info "creating new store: $store_name"
-  store_id=$($query "insert into stores (name) values ('$store_name') returning id")
+  
+  info "enter its category:"
+  read category
+
+  store_id=$($query "insert into stores (name, category) values ('$store_name', '${category^^}') returning id")
   echo "#$store_id"
 fi
 
