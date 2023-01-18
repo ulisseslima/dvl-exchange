@@ -64,6 +64,8 @@ create table stores (
     id serial PRIMARY KEY,
     created timestamp default now(),
     name varchar not null,
+    category varchar,
+    extra jsonb default '{}',
     description varchar
 );
 
