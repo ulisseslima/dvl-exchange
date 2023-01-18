@@ -39,7 +39,7 @@ do
       shift
       brand="product.brand ilike '%$1%'"
     ;;
-    --store|-s)
+    --from|--store|-s)
       shift
       store="store.name ilike '%$1%'"
     ;;
