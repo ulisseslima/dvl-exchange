@@ -24,6 +24,12 @@ today="now()::date"
 this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
 
+# TODO special characters in pdf.sh (just use csv?)
+# store: 14
+# product: 22
+# brand: 13
+max_width=100
+
 while test $# -gt 0
 do
     case "$1" in
@@ -33,13 +39,18 @@ do
     ;;
     --name|-p)
         shift
-        name="$1"
-        and="$and and product.name=upper('$name')"
+        name="${1^^}"
+        and="$and and product.name like '%${name}%'"
     ;;
     --store|-s|--from)
         shift
-        name="$1"
-        and="$and and upper(store.name) like '%${name^^}%'"
+        name="${1^^}"
+        and="$and and upper(store.name) like '%${name}%'"
+    ;;
+    --category|--cat|-c)
+        shift
+        name="${1^^}"
+        and="$and and store.category like '%${name}%'"
     ;;
     --brand|-b)
         shift
@@ -53,6 +64,10 @@ do
     --week|-w)
         start="($today - interval '1 week')"
         end="$today"
+    ;;
+    --width)
+        shift
+        max_width=$1
     ;;
     --month|-m)
         if [[ -n "$2" && "$2" != "-"* ]]; then
@@ -103,9 +118,10 @@ done
 interval="$start and $end"
 
 $query "select
+  substring(max(store.name), 0, $max_width) store,
   product.id,
-  product.name,
-  product.brand,
+  substring(product.name, 0, $max_width) product,
+  substring(product.brand, 0, $max_width) brand,
   round((1 * sum(op.price)::numeric / sum(op.amount)::numeric), 2) as avg_unit_price,
   sum(op.price) as total_spent,
   sum(op.amount) as total_amount
