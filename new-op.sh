@@ -120,16 +120,16 @@ if [[ -n "$id" ]]; then
   if [[ $simulation != true ]]; then
     if [[ "$kind" == BUY ]]; then
       $query "update assets set
-        amount=amount+$amount,
-        cost=cost+$price,
+        amount=amount+($amount),
+        cost=cost+($price),
         value=0
         where id = $asset_id
       "
     else
       # NOTE: there's no way to subtract the exact price, after a SELL operation
       $query "update assets set
-        amount=amount-$amount,
-        cost=cost-$price,
+        amount=amount-($amount),
+        cost=cost-($price),
         value=0
         where id = $asset_id
       "
