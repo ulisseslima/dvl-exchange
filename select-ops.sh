@@ -12,7 +12,9 @@ source $(real require.sh)
 
 query=$MYDIR/psql.sh
 
+and="1=1"
 ticker="2=2"
+grouping="op.id, ticker.id"
 order_by='max(op.created)'
 
 start="(now()::date - interval '1 month')"
@@ -89,6 +91,10 @@ do
         shift
         and="$and and op.currency='${1^^}'"
     ;;
+    --group-by|-g)
+        shift
+        grouping="$1"
+    ;;
     -*)
         echo "$0 - bad option '$1'"
     ;;
@@ -112,10 +118,35 @@ from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
 where op.created between $interval
-$and
+and $and
 and simulation is $simulation
 and $ticker
-group by op.id, ticker.id
+group by $grouping
 order by
   $order_by
+" --full
+
+info "aggregated sum [same value, different currencies]:"
+$query "select
+  round(sum(
+    (case when op.currency = 'USD' then
+      (price*$rate)
+      else
+      price
+    end)
+  ), 2) BRL,
+  round(sum(
+    (case when op.currency = 'BRL' then
+      (price/$rate)
+      else
+      price
+    end)
+  ), 2) USD
+from asset_ops op
+join assets asset on asset.id=op.asset_id
+join tickers ticker on ticker.id=asset.ticker_id
+where op.created between $interval
+and simulation is $simulation
+and $and
+and $ticker
 " --full
