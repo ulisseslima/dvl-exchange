@@ -20,7 +20,6 @@ if [[ "$product_name" == '*' || "$product_name" == 'ANY' ]]; then
   product_name='%'
 fi
 
-simulation=false
 brand="product.brand=product.brand"
 store="store.id=store.id"
 limit=5
@@ -33,7 +32,8 @@ while test $# -gt 0
 do
     case "$1" in
     --simulation|--sim)
-      simulation=true
+      shift
+      simulation="and simulation is $1"
     ;;
     --brand|-b)
       shift
@@ -91,15 +91,17 @@ done
 
 info "$store - $product_name [$brand] - latest buys:"
 $query "select 
-  op.id op, store.name store, product.name product, product.brand, op.created, 
-  price, op.currency cur, amount, round((1 * price / amount), 2) as unit
+  op.id op, store.name store, product.name product, product.brand, 
+  amount, price, op.currency cur, 
+  op.created,
+  round((1 * price / amount), 2) as unit
   from product_ops op
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
   and $store
-  and simulation is $simulation
+  $simulation
 order by op.created desc, op.id desc 
 limit $limit" --full
 
@@ -118,7 +120,7 @@ $query "select
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
   and $store
-  and simulation is $simulation
+  $simulation
   and op.created between '$period' and $interval
 group by product.id, product.brand
 order by max(op.created) desc 
@@ -126,17 +128,18 @@ order by max(op.created) desc
 
 info "cheapest buys:"
 $query "select 
-  op.id op, store.name store, product.name product, product.brand, op.created, 
-  price, 
-  op.currency cur,
-  amount, round((1 * price / amount), 2) as unit
+  op.id op, store.name store, product.name product, product.brand,
+  amount,
+  price, op.currency cur,
+  op.created,
+  round((1 * price / amount), 2) as unit
   from product_ops op
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
   and $brand
   and $store
-  and simulation is $simulation
+  $simulation
 order by 
   unit,
   op.created
