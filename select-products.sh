@@ -23,6 +23,7 @@ end="now()"
 today="now()::date"
 this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
+simulation=false
 
 # TODO special characters in pdf.sh (just use csv?)
 # store: 14
@@ -108,6 +109,9 @@ do
         shift
         order_by="$1"
     ;;
+    --simulation|--sim)
+      simulation=true
+    ;;
     -*)
         echo "$0 - bad option '$1'"
     ;;
@@ -129,6 +133,7 @@ from product_ops op
 join products product on product.id=op.product_id
 join stores store on store.id=op.store_id
 where op.created between $interval
+and simulation is $simulation
 and $and
 and $brand
 group by product.id
@@ -143,6 +148,7 @@ from product_ops op
 join products product on product.id=op.product_id
 join stores store on store.id=op.store_id
 where op.created between $interval
+and simulation is $simulation
 and $and
 and $brand
 "
