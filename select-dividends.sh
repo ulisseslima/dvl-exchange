@@ -34,6 +34,10 @@ do
         shift
         ticker="ticker.name ilike '$1%'"
     ;;
+    --currency|-c)
+        shift
+        and="$and and op.currency='${1^^}'"
+    ;;
     --today)
         start="$today"
         end="($today + interval '1 day')"
@@ -46,7 +50,7 @@ do
         if [[ -n "$2" && "$2" != "-"* ]]; then
             shift
             m=$1
-            
+
             [[ $this_month -ge $m ]] && year=$kotoshi || year=$(($kotoshi-1))
 
             start="'$year-$m-01'"
@@ -118,19 +122,19 @@ order by
 " --full
 
 info "aggregated sum [same value, different currencies]:"
-$query "select 
+$query "select
   round(sum(
-    (case when op.currency = 'USD' then 
-      (total*$rate) 
-      else 
-      total 
+    (case when op.currency = 'USD' then
+      (total*$rate)
+      else
+      total
     end)
   ), 2) BRL,
   round(sum(
-    (case when op.currency = 'BRL' then 
-      (total/$rate) 
-      else 
-      total 
+    (case when op.currency = 'BRL' then
+      (total/$rate)
+      else
+      total
     end)
   ), 2) USD
 from dividends op
