@@ -98,7 +98,7 @@ info "today's rate: $rate"
 info "earnings between $($query "select $start") and $($query "select $end")"
 $query "select
   op.id,
-  institution.id,
+  institution.id as institution,
   op.created,
   round(op.value, 2) as value,
   op.amount,
