@@ -21,10 +21,15 @@ if [[ $# -lt 1 ]]; then
 fi
 
 kind="${1^^}";      require --in 'BUY SELL' kind
-amount="$2";        require -nx amount
-ticker="${3^^}";    require ticker
-price="$4";         require -nx price
-currency="${5^^}";  require currency
+shift
+amount="$1";        require -nx amount
+shift
+ticker="${1^^}";    require ticker
+shift
+price="$1";         require -nx price
+shift
+currency="${1^^}";  require currency
+shift
 simulation=false
 
 while test $# -gt 0
