@@ -10,11 +10,11 @@ source $MYDIR/env.sh
 source $MYDIR/log.sh
 source $(real require.sh)
 
-query=$MYDIR/psql.sh
+psql=$MYDIR/psql.sh
 
 and="1=1"
 institution="2=2"
-order_by='max(op.created)'
+order_by='op.created'
 
 start="(now()::date - interval '1 month')"
 end="now()"
@@ -22,6 +22,15 @@ end="now()"
 today="now()::date"
 this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
+
+limit=1000
+
+function agg() {
+    column=$(echo "$1" | cut -d' ' -f1)
+    direction=$(echo "$1" | cut -d' ' -f2)
+
+    echo "max($column) $direction"
+}
 
 while test $# -gt 0
 do
@@ -68,6 +77,32 @@ do
             end="$today"
         fi
     ;;
+    --years)
+        shift
+        n=$1
+        
+        d1="$today"
+        if [[ -n "$2" && "$2" != -* ]]; then
+            shift
+            d1="'$1'::date"
+        fi
+
+        start="($d1 - interval '$n years')"
+        end="$d1"
+    ;;
+    --months)
+        shift
+        n=$1
+
+        d1="$today"
+        if [[ -n "$2" && "$2" != -* ]]; then
+            shift
+            d1="'$1'::date"
+        fi
+
+        start="($d1 - interval '$n months')"
+        end="$d1"
+    ;;
     --until)
         shift
         cut=$1
@@ -77,6 +112,14 @@ do
     --all|-a)
         start="'1900-01-01'"
         end="now()"
+    ;;
+    --limit|--last)
+        shift
+        limit=$1
+
+        start="'1900-01-01'"
+        end="now()"
+        order_by='op.created desc'
     ;;
     --order-by|-o)
         shift
@@ -95,8 +138,8 @@ rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 require rate
 info "today's rate: $rate"
 
-info "earnings between $($query "select $start") and $($query "select $end")"
-$query "select
+info "earnings between $($psql "select $start") and $($psql "select $end")"
+query="select
   op.id,
   institution.id as institution,
   op.created,
@@ -113,12 +156,18 @@ where op.created between $interval
 and $and
 and $institution
 group by op.id, institution.id
-order by
-  $order_by
-" --full
+order by $order_by
+limit $limit
+"
+
+$psql "$query" --full
+
+table=$($psql "$query")
+min_date=$(echo "$table" | tail -1 | cut -d'|' -f3)
+max_date=$(echo "$table" | head -1 | cut -d'|' -f3)
 
 info "aggregated sum [same value, different currencies]:"
-$query "select 
+query="select 
   round(sum(
     (case when op.currency = 'USD' then 
       (total*$rate) 
@@ -135,7 +184,8 @@ $query "select
   ), 2) USD
 from earnings op
 join institutions institution on institution.id=op.institution_id
-where op.created between $interval
+where op.created between '$min_date' and '$max_date'
 and $and
 and $institution
-" --full
+"
+$psql "$query" --full
