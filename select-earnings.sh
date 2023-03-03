@@ -134,10 +134,6 @@ done
 
 interval="$start and $end"
 
-rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
-require rate
-info "today's rate: $rate"
-
 info "earnings between $($psql "select $start") and $($psql "select $end")"
 query="select
   op.id,
@@ -148,7 +144,7 @@ query="select
   op.total,
   op.currency,
   round(op.rate, 2) as rate,
-  (case when op.currency = 'USD' then round((total*$rate), 2)::text else total::text end) BRL,
+  (case when op.currency = 'USD' then round((total*rate), 2)::text else total::text end) BRL,
   round(total/amount, 2) unit
 from earnings op
 join institutions institution on institution.id=op.institution_id
@@ -165,6 +161,10 @@ $psql "$query" --full
 table=$($psql "$query")
 min_date=$(echo "$table" | tail -1 | cut -d'|' -f3)
 max_date=$(echo "$table" | head -1 | cut -d'|' -f3)
+
+rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+require rate
+info "today's rate: $rate"
 
 info "aggregated sum [same value, different currencies]:"
 query="select 
