@@ -54,6 +54,10 @@ do
     --csv)
         noop="TODO"
     ;;
+    -f)
+        shift
+        field="$1"
+    ;;
     -*)
         echo "$0 - bad option '$1'"
         exit 6
@@ -63,7 +67,13 @@ do
 done
 
 if [[ -f "$query" ]]; then
-    $connection -$ops --field-separator="$separator" < "$query"
+    result=$($connection -$ops --field-separator="$separator" < "$query")
 else
-    $connection -$ops --field-separator="$separator" -c "$query"
+    result=$($connection -$ops --field-separator="$separator" -c "$query")
+fi
+
+if [[ -z "$field" ]]; then
+    echo "$result"
+else
+    echo "$result" | cut -d"$separator" -f$field
 fi
