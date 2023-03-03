@@ -158,10 +158,6 @@ limit $limit
 
 $psql "$query" --full
 
-table=$($psql "$query")
-min_date=$(echo "$table" | tail -1 | cut -d'|' -f3)
-max_date=$(echo "$table" | head -1 | cut -d'|' -f3)
-
 rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 require rate
 info "today's rate: $rate"
@@ -182,10 +178,6 @@ query="select
       total 
     end)
   ), 2) USD
-from earnings op
-join institutions institution on institution.id=op.institution_id
-where op.created between '$min_date' and '$max_date'
-and $and
-and $institution
+from ($query) op
 "
 $psql "$query" --full
