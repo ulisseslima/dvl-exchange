@@ -111,6 +111,24 @@ create table earnings (
     rate numeric default 1
 );
 
+-- region specific: BR
+create table br_simples_nacional (
+    id serial PRIMARY KEY,
+    modified timestamp default now(),
+    cut numeric not null,
+    tax numeric not null,
+    deduction numeric not null
+);
+
+insert into br_simples_nacional (cut, tax, deduction) values 
+(180000, 6, 0),
+(360000.00, 11.2, 9360.00),
+(720000.00, 13.5, 17640.00),
+(1800000.00, 16.0, 35640.00),
+(3600000.00, 21.0, 125640.00),
+(4800000.00, 33.0, 648000.00)
+;
+
 --/
 insert into tickers (name) values ('DVLCUBE');
 
