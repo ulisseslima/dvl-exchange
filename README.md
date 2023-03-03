@@ -53,3 +53,4 @@ It will get prices from all the tickers you registered from 10 am to 18 am, on w
 * https://finance.yahoo.com/quote/ITUB4.SA/history?p=ITUB4.SA
 * https://in.investing.com/equities/cielo-on-nm-historical-data-splits
 * https://www.globalproductprices.com/Japan/playstation_prices/
+* https://www.b3.com.br/en_us/market-data-and-indices/data-services/market-data/historical-data/equities/historical-quotes/
