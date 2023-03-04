@@ -10,7 +10,7 @@ source $MYDIR/env.sh
 source $MYDIR/log.sh
 source $(real require.sh)
 
-query=$MYDIR/psql.sh
+psql=$MYDIR/psql.sh
 
 and="1=1"
 ticker="2=2"
@@ -36,7 +36,8 @@ do
     ;;
     --currency|-c)
         shift
-        and="$and and op.currency='${1^^}'"
+        clause="${1^^}"
+        and="$and and op.currency='$clause'"
     ;;
     --today)
         start="$today"
@@ -79,7 +80,7 @@ do
     ;;
     --all|-a)
         start="'1900-01-01'"
-        end="now()"
+        end="current_timestamp"
     ;;
     --order-by|-o)
         shift
@@ -93,13 +94,9 @@ do
 done
 
 interval="$start and $end"
+info "dividends between $($psql "select $start") and $($psql "select $end")"
 
-rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
-require rate
-info "today's rate: $rate"
-
-info "dividends between $($query "select $start") and $($query "select $end")"
-$query "select
+query="select
   op.ticker_id,
   ticker.name,
   op.id as op_id,
@@ -109,7 +106,7 @@ $query "select
   op.total,
   op.currency,
   round(op.rate, 2) as rate,
-  (case when op.currency = 'USD' then round((total*$rate), 2)::text else total::text end) BRL,
+  (case when op.currency = 'USD' then round((total*rate), 2)::text else total::text end) BRL,
   round(total/amount, 2) unit
 from dividends op
 join tickers ticker on ticker.id=op.ticker_id
@@ -119,10 +116,16 @@ and $ticker
 group by op.id, ticker.id
 order by
   $order_by
-" --full
+"
+
+$psql "$query" --full
+
+rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+require rate
+info "today's rate: $rate"
 
 info "aggregated sum [same value, different currencies]:"
-$query "select
+$psql "select
   round(sum(
     (case when op.currency = 'USD' then
       (total*$rate)
@@ -137,9 +140,5 @@ $query "select
       total
     end)
   ), 2) USD
-from dividends op
-join tickers ticker on ticker.id=op.ticker_id
-where op.created between $interval
-and $and
-and $ticker
+from ($query) op
 " --full
