@@ -141,3 +141,33 @@ function interval() {
 
     $MYDIR/psql.sh "select now() $op interval '$interval'"
 }
+
+##
+# percentage difference between two values
+function diff_percentage() {
+    v1="$1"
+    v2="$2"
+
+    op "($v2 * 100) / $v1"
+}
+
+##
+# prompt the user for an internal variable value
+function prompt_conf() {
+    keyname="$1"
+    message="$2"
+    set=false
+
+    currval=''
+    while [[ -z "$currval" ]]
+	do
+		err "'$keyname' not set. what's your $message?"
+		read currval
+        set=true
+	done
+
+	if [[ $set == true ]]; then
+        prop $LOCAL_ENV $keyname $currval
+        source $LOCAL_ENV
+    fi
+}
