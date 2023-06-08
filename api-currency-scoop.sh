@@ -15,13 +15,12 @@ function do_request() {
 	body="$1"; shift
 	#[[ -n "$body" ]] && body=" -d '${body//\"/\\\"}'"
 
-	curl_opts="--progress-bar"
+	curl_opts="--location --progress-bar"
 	if [[ $(debugging) == on ]]; then
 		curl_opts='-v'
     fi
 
-	debug "$curl_opts -X $method $URL/$endpoint"
-	debug "$(cscooper_query_key)"
+	debug "curl $curl_opts -X $method '$URL/${endpoint}$(cscooper_query_key)'"
 	debug "body: $body"
 
 	request_cache="$CACHE/$1-$2.request.json"
@@ -38,7 +37,7 @@ function do_request() {
 			-d "$body"\
 			-H "Content-Type: application/json"
 	else
-		curl $curl_opts -X $method "$URL/$endpoint?$(cscooper_query_key)"
+		curl $curl_opts -X $method "$URL/${endpoint}$(cscooper_query_key)"
 	fi
 }
 
@@ -46,9 +45,9 @@ endpoint="$1-$2"
 out="$CACHE/$endpoint.response.json"
 mkdir -p $(dirname "$out")
 last_response=$(last_response_minutes "$out")
-if [[ "$last_response" -lt $REQUESTS_INTERVAL ]]; then
-	debug "last response to $endpoint was $last_response minutes ago. interval is $REQUESTS_INTERVAL minutes. returning cached response."
-	debug "cached response file: $out"
+if [[ "$last_response" -lt $API_REQUESTS_INTERVAL ]]; then
+	debug "last response to $endpoint was $last_response minutes ago. interval is $API_REQUESTS_INTERVAL minutes. returning cached response."
+	info "cached response file: $out"
 
 	# TODO return last response only if GET method. if POST, return error.
 	cat "$out"
@@ -59,11 +58,10 @@ fi
 
 response=$(do_request "$@")
 
-echo "$response" > "$out"
-debug "response cached to $out"
-
 if [[ "$response" == *html* ]]; then
 	err "$response"
+else
+	echo "$response" > "$out"
+	debug "response cached to $out"
+	echo "$response"
 fi
-
-echo "$response"
