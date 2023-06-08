@@ -105,7 +105,7 @@ $query "select
 order by op.created desc, op.id desc 
 limit $limit" --full
 
-info "average price considering period from '$period' $interval:"
+info "average price considering period between '$period' and '$interval':"
 $query "select
     product.id,
     product.name product,
