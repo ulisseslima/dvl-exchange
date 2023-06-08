@@ -10,7 +10,7 @@ source $MYDIR/env.sh
 source $MYDIR/log.sh
 source $(real require.sh)
 
-query=$MYDIR/psql.sh
+psql=$MYDIR/psql.sh
 
 and="1=1"
 ticker="2=2"
@@ -91,6 +91,16 @@ do
         shift
         and="$and and op.currency='${1^^}'"
     ;;
+    --kind|-k)
+        shift
+        and="$and and ticker.kind='${1^^}'"
+    ;;
+    --buys)
+        and="$and and op.kind='BUY'"
+    ;;
+    --sells)
+        and="$and and op.kind='SELL'"
+    ;;
     --group-by|-g)
         shift
         grouping="$1"
@@ -107,8 +117,8 @@ interval="$start and $end"
 rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 require rate
 
-info "ops between $($query "select $start") and $($query "select $end")"
-$query "select
+info "ops between $($psql "select $start") and $($psql "select $end")"
+query="select
   max(asset.id)||'/'||ticker.id \"ass/tick\",
   ticker.name,
   round((1 * op.price::numeric / op.amount::numeric), 2) as unit,
@@ -124,13 +134,16 @@ and $ticker
 group by $grouping
 order by
   $order_by
-" --full
+"
+
+$psql "$query" --full
+debug "$query"
 
 info "aggregated sum [same value, different currencies]:"
-$query "select
+query="select
   round(sum(
     (case when op.currency = 'USD' then
-      (price*$rate)
+      (price*rate)
       else
       price
     end)
@@ -149,4 +162,7 @@ where op.created between $interval
 and simulation is $simulation
 and $and
 and $ticker
-" --full
+"
+
+$psql "$query" --full
+debug "$query"
