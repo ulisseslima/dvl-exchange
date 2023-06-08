@@ -9,7 +9,9 @@ create table tickers (
     created timestamp default now(),
     public boolean not null default true,
     value numeric default 0,
-    score numeric
+    score numeric,
+    currency varchar,
+    tax_id varchar
 );
 
 create table exchanges (
@@ -54,6 +56,16 @@ create table dividends (
     ticker_id bigint not null references tickers on DELETE CASCADE,
     created timestamp default now(),
     value numeric not null,
+    amount numeric not null,
+    total numeric not null,
+    currency varchar not null,
+    rate numeric default 1
+);
+
+create table loans (
+    id serial PRIMARY KEY,
+    ticker_id bigint not null references tickers on DELETE CASCADE,
+    created timestamp default now(),
     amount numeric not null,
     total numeric not null,
     currency varchar not null,
@@ -160,11 +172,18 @@ BEGIN
   RETURN _price;
 END;
 $f$ LANGUAGE plpgsql;
---/
+--/ e.g., percentage_diff(200, 100) => 100%
 CREATE OR REPLACE FUNCTION percentage_diff(a numeric, b numeric)
 RETURNS NUMERIC AS $f$
 BEGIN
   RETURN round((a-b)*100/b, 2);
+END;
+$f$ LANGUAGE plpgsql;
+--/ e.g., percentage(100, 30%) => 30
+CREATE OR REPLACE FUNCTION percentage(a numeric, b numeric)
+RETURNS NUMERIC AS $f$
+BEGIN
+  RETURN round((b*a) / 100, 2);
 END;
 $f$ LANGUAGE plpgsql;
 --/
@@ -187,3 +206,40 @@ BEGIN
   RETURN rows_affected;
 END;
 $f$ LANGUAGE plpgsql;
+--/
+CREATE OR REPLACE FUNCTION last_buy(tickerId BIGINT)
+RETURNS NUMERIC AS $f$
+DECLARE
+  _price numeric;
+BEGIN
+  select round(op.price/op.amount, 2)
+  from asset_ops op 
+  join assets asset on asset.id=op.asset_id 
+  join tickers ticker on ticker.id=asset.ticker_id 
+  where ticker.id=tickerId
+  order by op.id desc
+  limit 1
+  into _price;
+  RETURN _price;
+END;
+$f$ LANGUAGE plpgsql;
+--/
+CREATE OR REPLACE FUNCTION avg_buy(tickerId BIGINT)
+RETURNS NUMERIC AS $f$
+DECLARE
+  _price numeric;
+BEGIN
+  select round(avg(history.price/history.amount), 2) from (
+    select op.price, op.amount 
+    from asset_ops op 
+    join assets asset on asset.id=op.asset_id 
+    join tickers ticker on ticker.id=asset.ticker_id 
+    where ticker.id=tickerId
+    order by op.id desc
+    limit 12
+  ) history
+  into _price;
+  RETURN _price;
+END;
+$f$ LANGUAGE plpgsql;
+--/
