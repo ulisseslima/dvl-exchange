@@ -49,8 +49,8 @@ endpoint="$1-$2"
 out="$CACHE/$endpoint.response.json"
 mkdir -p $(dirname "$out")
 last_response=$(last_response_minutes "$out")
-if [[ "$last_response" -lt $REQUESTS_INTERVAL ]]; then
-	debug "last response to $endpoint was $last_response minutes ago. interval is $REQUESTS_INTERVAL minutes. returning cached response."
+if [[ "$last_response" -lt $API_REQUESTS_INTERVAL ]]; then
+	debug "last response to $endpoint was $last_response minutes ago. interval is $API_REQUESTS_INTERVAL minutes. returning cached response."
 	debug "cached response file: $out"
 
 	# TODO return last response only if GET method. if POST, return error.
