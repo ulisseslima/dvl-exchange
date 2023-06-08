@@ -69,6 +69,10 @@ do
     --summary|--sum)
       summary=true
     ;;
+    --select)
+      shift
+      cols="$cols ,$1"
+    ;;
     --order-by-val)
       order="max(op.currency),
       curr_val desc,
@@ -95,10 +99,11 @@ $query "select
   round(sum(op.price*op.rate), 2) as BRL,
   round(price(ticker.id)*sum(op.amount), 2) as curr_val,
   percentage_diff(price(ticker.id)*sum(op.amount), sum(op.price)) as diff
+  $cols
 from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
-where op.created between $interval 
+where op.created between $interval
 and simulation is $simulation
 $ticker
 group by op.asset_id, ticker.id
