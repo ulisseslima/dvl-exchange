@@ -1,6 +1,6 @@
 #!/bin/bash -e
 # @installable
-# adds a new BUY/SELL operation
+# adds a new dividend value. NOTE: always include values BEFORE taxes.
 MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
@@ -13,7 +13,7 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
-  info "usage example: $0 AGG 2.41 2022-03-08"
+  info "usage example: $0 AGG 2.41 $(now.sh -d)"
   exit 0
 fi
 
