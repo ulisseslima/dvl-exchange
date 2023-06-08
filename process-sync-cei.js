@@ -55,13 +55,53 @@ let itens = JSON.parse(json).itens
 				console.log(`	└ !!! ticker not registered: ${tickerName}`)
 			}
 
+			// TODO Grupamento. vem apenas o item 'quantidade'. ver se é a quantidade nova, ou o número da divisão
 			let matches = null
 			let tipoMovimentacao = movimentacao.tipoMovimentacao || 'n/a'
-			switch (tipoMovimentacao) {
-				case 'Rendimento':
-					console.log(`	* processing dividends >`)
+			if (tipoMovimentacao == "Empréstimo") {
+				tipoMovimentacao += ' - ' + movimentacao.tipoEmprestimo
+			}
 
-					let tickerId = ticker.id
+			let tickerId = ticker.id
+			switch (tipoMovimentacao) {
+				case 'Empréstimo - Liquidação':
+					console.log(`	* processing loan (${tipoMovimentacao}) >`)
+					
+					// Às vezes não tem a quantidade de emprestados. checar na mesma movimentação se tem "quantidade" no 
+					// tipoEmprestimo=Registro e naturezaEmprestimo=Doador, tipoMovimentacao=Emprestimo e nomeProduto=igual o da iteração de agora
+					if (!movimentacao.quantidade) {
+						let results = listaMovimentacao.filter(mov => 
+							mov.tipoEmprestimo === 'Registro' &&
+							mov.naturezaEmprestimo === 'Doador' &&
+							mov.tipoMovimentacao === 'Empréstimo' &&
+							mov.nomeProduto === movimentacao.nomeProduto
+						)
+
+						if (results) movimentacao.quantidade = results[0].quantidade
+					}
+
+					matches = await client.query(`
+						select count(id) from loans 
+						where ticker_id = $1
+						and amount = $2
+						and total = $3
+						and created = $4
+					`, [tickerId, movimentacao.quantidade, movimentacao.valorOperacao, item.data])
+
+					if (matches.rows[0].count > 0) {
+						console.log("	└ loan already saved")
+						continue
+					}
+			
+					await client.query(
+						'insert into loans (ticker_id, created, amount, total, currency) values ($1, $2, $3, $4, $5)', 
+						[tickerId, item.data, movimentacao.quantidade, movimentacao.valorOperacao, "BRL"]
+					)
+					console.log(`	└ loan saved`)
+					break
+				case 'Rendimento':
+					console.log(`	* processing dividends (${tipoMovimentacao}) >`)
+
 					matches = await client.query(`
 						select count(id) from dividends 
 						where ticker_id = $1
