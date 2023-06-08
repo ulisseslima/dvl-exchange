@@ -138,8 +138,6 @@ function wizard() {
     db DB_PASS $PGPASSWORD
     prompt YFAPI_KEY "Yahoo Finance API Key"
     prompt CSCOOP_KEY "Currency Scooper API Key"
-    #prompt CEI_KEY_GUID "CEI cache-guid"
-    #prompt CEI_KEY_BEARER "CEI Auth Bearer"
 
     local_db
 
