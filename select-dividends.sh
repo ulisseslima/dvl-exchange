@@ -12,16 +12,31 @@ source $(real require.sh)
 
 psql=$MYDIR/psql.sh
 
+dividends_tax=30
+
 and="1=1"
 ticker="2=2"
 order_by='max(op.created)'
 
 start="(now()::date - interval '1 month')"
-end="now()"
+end="CURRENT_TIMESTAMP"
 
 today="now()::date"
 this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
+
+cols="ticker.id,
+  ticker.name,
+  op.id as op_id,
+  op.created,
+  round(op.value, 2) as unit,
+  op.amount,
+  op.total,
+  op.currency,
+  round(op.rate, 2) as rate,
+  (case when op.currency = 'USD' then round((total*rate), 2)::text else total::text end) BRL
+"
+group_by="op.id, ticker.id"
 
 while test $# -gt 0
 do
@@ -82,6 +97,38 @@ do
         start="'1900-01-01'"
         end="current_timestamp"
     ;;
+    --group-by|-g)
+        shift
+        group_by="$1"
+    ;;
+    --group-by-ticker|--gt)
+        cols="ticker.id,
+            ticker.name,
+            round(avg(op.value), 2) as unit,
+            sum(op.amount) as shares,
+            sum(op.total) as total,
+            ticker.currency,
+            (case when ticker.currency = 'USD' then round((sum(op.total)*avg(op.rate)), 2)::text else sum(op.total)::text end) BRL
+        "
+        order_by="ticker.currency, total desc"
+        group_by="ticker.id"
+    ;;
+    --group-by-month|--gm)
+        cols="date_part('month', op.created) as month,
+            round(avg(op.value), 2) as unit,
+            sum(op.amount) as shares,
+            sum(op.total) as total,
+            array_agg(distinct ticker.currency) currencies,
+            round(avg(op.rate), 3) avg_rate,
+            round(sum(op.total*op.rate), 2) as brl
+        "
+        order_by="month"
+        group_by="month"
+    ;;
+    --select)
+        shift
+        cols="$cols,$1"
+    ;;
     --order-by|-o)
         shift
         order_by="$1"
@@ -96,27 +143,17 @@ done
 interval="$start and $end"
 info "dividends between $($psql "select $start") and $($psql "select $end")"
 
-query="select
-  op.ticker_id,
-  ticker.name,
-  op.id as op_id,
-  op.created,
-  round(op.value, 2) as value,
-  op.amount,
-  op.total,
-  op.currency,
-  round(op.rate, 2) as rate,
-  (case when op.currency = 'USD' then round((total*rate), 2)::text else total::text end) BRL,
-  round(total/amount, 2) unit
+query="select $cols
 from dividends op
 join tickers ticker on ticker.id=op.ticker_id
 where op.created between $interval
 and $and
 and $ticker
-group by op.id, ticker.id
+group by $group_by
 order by
   $order_by
 "
+debug "query=$query"
 
 $psql "$query" --full
 
@@ -124,21 +161,31 @@ rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
 require rate
 info "today's rate: $rate"
 
-info "aggregated sum [same value, different currencies]:"
-$psql "select
-  round(sum(
-    (case when op.currency = 'USD' then
-      (total*$rate)
-      else
-      total
-    end)
-  ), 2) BRL,
-  round(sum(
-    (case when op.currency = 'BRL' then
-      (total/$rate)
-      else
-      total
-    end)
-  ), 2) USD
-from ($query) op
-" --full
+if [[ "$group_by" == "month" ]]; then
+    info "aggregated sum:"
+    $psql "select
+    round(sum(total), 2) as USD,
+    round(sum(brl), 2) as BRL,
+    percentage(sum(brl), $dividends_tax) as taxes
+    from ($query) op
+    " --full
+else
+    info "aggregated sum [same value, different currencies]:"
+    $psql "select
+    round(sum(
+        (case when op.currency = 'USD' then
+        (total*$rate)
+        else
+        total
+        end)
+    ), 2) BRL,
+    round(sum(
+        (case when op.currency = 'BRL' then
+        (total/$rate)
+        else
+        total
+        end)
+    ), 2) USD
+    from ($query) op
+    " --full
+fi
