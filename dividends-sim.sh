@@ -60,7 +60,7 @@ if [[ -z "$avg_dividends" ]]; then
     info "no dividends found for $ticker#$ticker_id, please inform:"
     read avg_dividends
 else
-    info "$ticker - average monthly dividends based on the last $avg months earnings: $avg_dividends"
+    info "$ticker - average monthly dividends based on the last $avg months earnings: \$${avg_dividends}"
 fi
 
 curr_price=$($psql "select price($ticker_id)")
