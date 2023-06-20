@@ -123,6 +123,15 @@ create table earnings (
     rate numeric default 1
 );
 
+create table index_snapshots (
+    index_id integer not null,
+    index_name varchar not null,
+    created date default now()::date,
+    price numeric not null,
+    currency varchar not null,
+    PRIMARY KEY(index_id, created)
+);
+
 -- region specific: BR
 create table br_simples_nacional (
     id serial PRIMARY KEY,
