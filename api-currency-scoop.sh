@@ -58,7 +58,7 @@ fi
 
 response=$(do_request "$@")
 
-if [[ "$response" == *html* ]]; then
+if [[ -z "$response" || "$response" == *html* ]]; then
 	err "$response"
 else
 	echo "$response" > "$out"
