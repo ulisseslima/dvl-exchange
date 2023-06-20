@@ -48,6 +48,8 @@ do
     --ticker|-t)
         shift
         ticker="ticker.name ilike '$1%'"
+        ticker_id=$($psql "select id from tickers where name ilike '${1}%' limit 1")
+        ticker_name=$($psql "select name from tickers where name ilike '${1}%' limit 1")
     ;;
     --currency|-c)
         shift
@@ -157,10 +159,6 @@ debug "query=$query"
 
 $psql "$query" --full
 
-rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
-require rate
-info "today's rate: $rate"
-
 if [[ "$group_by" == "month" ]]; then
     info "aggregated sum:"
     $psql "select
@@ -170,6 +168,10 @@ if [[ "$group_by" == "month" ]]; then
     from ($query) op
     " --full
 else
+    rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+    require rate
+    info "today's rate: $rate"
+
     info "aggregated sum [same value, different currencies]:"
     $psql "select
     round(sum(
@@ -188,4 +190,38 @@ else
     ), 2) USD
     from ($query) op
     " --full
+fi
+
+avg=12
+if [[ -n "$ticker_id" ]]; then
+    div_pm_query="select round(sum(total)/$avg, 2) from (
+        select d.total
+        from dividends d
+        where ticker_id = $ticker_id
+        and d.created between now()-interval '$avg months' and now()
+        order by d.created desc
+    ) q"
+
+    debug "$div_pm_query"
+    avg_dividends=$($psql "$div_pm_query")
+
+    if [[ -n "$avg_dividends" ]]; then
+        info "$ticker_name - average monthly dividends based on the last $avg months earnings: \$${avg_dividends}"
+    fi
+else
+    div_pm_query="select (round(sum(total)/$avg, 2)), currency from (
+        select d.total, d.currency
+        from dividends d
+        where d.created between now()-interval '$avg months' and now()
+        order by d.created desc
+    ) q
+    group by currency"
+
+    debug "$div_pm_query"
+    avg_dividends=$($psql "$div_pm_query")
+
+    if [[ -n "$avg_dividends" ]]; then
+        info "average monthly dividends based on the last $avg months earnings:"
+        echo "${avg_dividends}"
+    fi
 fi
