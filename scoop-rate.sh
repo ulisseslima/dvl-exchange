@@ -43,8 +43,8 @@ require symbols
 
 response=$($api GET "v1/$mode?base=$currency&symbols=$symbols&date=$date")
 if [[ -z "$response" ]]; then
-  err "no response"
-  exit 9
+  err "no response, returning last known snapshot..."
+  response=$($query "select '{\"response\":{\"date\":\"'||s.created::date||'\",\"rates\":{\"BRL\":'||s.price||'}}}' from snapshots s join tickers t on t.id=s.ticker_id where t.name = 'USD-BRL' order by s.id desc limit 1")
 fi
 
 echo "$response"
