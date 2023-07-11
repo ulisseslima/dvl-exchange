@@ -145,12 +145,13 @@ done
 interval="$start and $end"
 info "dividends between $($psql "select $start") and $($psql "select $end")"
 
+filters="$and and $ticker"
+
 query="select $cols
 from dividends op
 join tickers ticker on ticker.id=op.ticker_id
 where op.created between $interval
-and $and
-and $ticker
+and $filters
 group by $group_by
 order by
   $order_by
@@ -168,7 +169,7 @@ if [[ "$group_by" == "month" ]]; then
     from ($query) op
     " --full
 else
-    rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+    rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .rates.BRL)
     require rate
     info "today's rate: $rate"
 
@@ -195,11 +196,12 @@ fi
 avg=12
 if [[ -n "$ticker_id" ]]; then
     div_pm_query="select round(sum(total)/$avg, 2) from (
-        select d.total
-        from dividends d
-        where ticker_id = $ticker_id
-        and d.created between now()-interval '$avg months' and now()
-        order by d.created desc
+        select op.total
+        from dividends op
+        join tickers ticker on ticker.id=op.ticker_id
+        where op.created between now()-interval '$avg months' and now()
+        and $filters
+        order by op.created desc
     ) q"
 
     debug "$div_pm_query"
@@ -210,10 +212,12 @@ if [[ -n "$ticker_id" ]]; then
     fi
 else
     div_pm_query="select (round(sum(total)/$avg, 2)), currency from (
-        select d.total, d.currency
-        from dividends d
-        where d.created between now()-interval '$avg months' and now()
-        order by d.created desc
+        select op.total, op.currency
+        from dividends op
+        join tickers ticker on ticker.id=op.ticker_id
+        where op.created between now()-interval '$avg months' and now()
+        and $filters
+        order by op.created desc
     ) q
     group by currency"
 
