@@ -52,7 +52,7 @@ fi
 if [[ "$response" == not-authorized ]]; then
     err "logged out. you need to update key info in $LOCAL_ENV - https://www.investidor.b3.com.br/"
     
-    prompt_conf CEI_KEY_GUID "CEI cache-guid"
+    # prompt_conf CEI_KEY_GUID "CEI cache-guid"
     prompt_conf CEI_KEY_BEARER "CEI Auth Bearer"
 
     exit 7
@@ -63,3 +63,5 @@ debug "node: $?/$!"
 
 info "done"
 echo "$response" | jq
+
+# TODO sync br-indexes from last inserted date to now

@@ -19,10 +19,11 @@ function do_request() {
 		local curl_opts='-kv'
     fi
 
-	local query_key="$(cei_api_query_key)"
+	# local query_key="$(cei_api_query_key)"
 	local auth_header="$(cei_api_auth_header)"
 
-	request="$URL/$endpoint?$query_key&$params"
+	# request="$URL/$endpoint?$query_key&$params"
+	request="$URL/$endpoint?$params"
 	debug "$curl_opts -X $method $request"
 
 	local request_cache="$CACHE/$1-$2-$3.request.json"
