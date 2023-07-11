@@ -90,8 +90,8 @@ require ntickers
 
 per=$(op $amount/$ntickers)
 
-#rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
-#require rate
+rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .rates.BRL)
+require rate
 
 info "$amount/$ntickers = $per $currency per ticker"
 

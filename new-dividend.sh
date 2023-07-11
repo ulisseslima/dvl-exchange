@@ -37,7 +37,7 @@ asset_currency=$($query "select currency from assets where id = $asset_id")
 
 rate=1
 if [[ "$asset_currency" == USD ]]; then
-  rate=$($MYDIR/scoop-rate.sh USD -x BRL --date "$created" | jq -r .response.rates.BRL)
+  rate=$($MYDIR/scoop-rate.sh USD -x BRL --date "$created" | jq -r .rates.BRL)
   require rate
 fi
 

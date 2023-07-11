@@ -114,7 +114,7 @@ done
 
 interval="$start and $end"
 
-rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .rates.BRL)
 require rate
 
 info "ops between $($psql "select $start") and $($psql "select $end")"

@@ -152,7 +152,7 @@ debug "query=$query"
 
 $psql "$query" --full
 
-rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .rates.BRL)
 require rate
 info "today's rate: $rate"
 

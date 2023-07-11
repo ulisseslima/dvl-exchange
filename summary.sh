@@ -87,7 +87,7 @@ done
 #   avg(snap.price)
 # " --full
 
-exchange=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .response.rates.BRL)
+exchange=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .rates.BRL)
 # \"$\"
 
 WITH_AGGREGATED_INFO="with
