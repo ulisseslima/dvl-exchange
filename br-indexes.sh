@@ -1,0 +1,157 @@
+#!/bin/bash
+# @installable
+# show common indexes in month's values
+MYSELF="$(readlink -f "$0")"
+MYDIR="${MYSELF%/*}"
+ME=$(basename $MYSELF)
+
+source $MYDIR/env.sh
+[[ -f $LOCAL_ENV ]] && source $LOCAL_ENV
+source $MYDIR/log.sh
+source $(real require.sh)
+
+query=$MYDIR/psql.sh
+
+# bcb time series (month)
+# https://api.bcb.gov.br/dados/serie/bcdata.sgs.${index_id}/dados?formato=json&dataInicial=dd/MM/yyyy&dataFinal=dd/MM/yyyy
+#* CDI do dia: 12
+#* https://dadosabertos.bcb.gov.br/dataset/20542-saldo-da-carteira-de-credito-com-recursos-livres---total/resource/6e2b0c97-afab-4790-b8aa-b9542923cf88
+
+# bacen API
+# * https://dadosabertos.bcb.gov.br/
+
+# todos índices
+# * https://www.melhorcambio.com/tr
+
+# TODO create indexes table to follow
+# https://www.portalbrasil.net/igpm/
+
+# calc:
+# https://www3.bcb.gov.br/CALCIDADAO/publico/exibirFormCorrecaoValores.do?method=exibirFormCorrecaoValores
+
+# TR - taxa referencial (usada como base pra poupança). divulgado todo dia pelo bacen
+# * http://www.yahii.com.br/tr.html
+
+function now_br() {
+  date +"%d/%m/%Y"
+}
+
+function dop_br() {
+  $query "select to_char($1, 'dd/mm/yyyy')"
+  # info "converting $1 to date: $result"
+  # read confirmation
+}
+
+api=$MYDIR/api-bcb.sh
+
+today="now()::date"
+this_month=$(now.sh -m)
+kotoshi=$(now.sh -y)
+
+# taxa referencial (poupança)
+TR=7811
+CDI=4391
+IGP_M=189
+IPCA=433
+
+index=${1^^}
+require index "index name"
+
+index_id=${!index}
+require index_id "index ID"
+
+start="$today"
+end="$today"
+
+accumulate=true
+
+while test $# -gt 0
+do
+    case "$1" in
+    --start)
+      shift
+      start="$1"
+    ;;
+    --end)
+      shift
+      end="$1"
+    ;;
+    --month|-m)
+      if [[ -n "$2" && "$2" != "-"* ]]; then
+          shift
+          m=$1
+
+          [[ $this_month -ge $m ]] && year=$kotoshi || year=$(($kotoshi-1))
+
+          start="'$year-$m-01'::timestamp"
+          end="('$year-$m-01'::timestamp + interval '1 month')"
+      else
+          start="($today - interval '1 month')"
+          end="$today"
+      fi
+    ;;
+    --year|-y)
+        if [[ "$2" != "-"* ]]; then
+            shift
+            y=$1
+            start="'$y-01-01'::timestamp"
+            end="('$y-01-01'::timestamp + interval '1 year, -1 day')"
+        else
+            start="($today - interval '1 year, 1 day')"
+            end="$today"
+        fi
+    ;;
+    --accumulate|--last)
+      shift
+      n=$1
+
+      start="($today - interval '$n months')"
+      accumulate=true
+    ;;
+    -*)
+      echo "$0 - bad option '$1'"
+    ;;
+    esac
+    shift
+done
+
+info "checking $index [#$index_id]
+ from $start to $end"
+
+response=$($api GET "bcdata.sgs.${index_id}/dados" "dataInicial=$(dop_br "${start}")&dataFinal=$(dop_br "${end}")")
+last_date=0
+accumulated_price=0
+while read item
+do
+  require item
+  info "inserting $index [$index_id]: $item"
+
+  date=$(echo "$item" | jq -r .data)
+  price=$(echo "$item" | jq -r .valor)
+
+  if [[ "$date" == "$last_date" ]]; then
+    info "skipping dupe $date"
+    continue
+  fi
+  last_date="$date"
+
+  if [[ $accumulate == true ]]; then
+    accumulated_price=$(op $accumulated_price+$price)
+  fi
+
+  last_price=$($query "select price from index_snapshots where index_id = $index_id and created = to_date('$date', 'DD/MM/YYYY')")
+
+  if [[ -z "$last_price" ]]; then
+    $query "insert into index_snapshots (index_id, index_name, created, price, currency)
+      SELECT $index_id, '$index', to_date('$date', 'DD/MM/YYYY'), $price, 'BRL'
+    "
+  elif [[ $last_price != $price ]]; then
+    info "(updating from $last_price to $price)"
+    $query "update index_snapshots
+      set price=$price
+      where index_id = $index_id and created = to_date('$date', 'DD/MM/YYYY')
+    "
+  fi
+done < <(echo "$response" | jq -c '.[]')
+
+echo "${accumulated_price}%"
