@@ -69,7 +69,7 @@ do
             shift
             m=$1
 
-            [[ $this_month -ge $m ]] && year=$kotoshi || year=$(($kotoshi-1))
+            [[ $(op_real "$this_month >= $m") == t ]] && year=$kotoshi || year=$(($kotoshi-1))
 
             start="'$year-$m-01'"
             end="('$year-$m-01'::timestamp + interval '1 month')"

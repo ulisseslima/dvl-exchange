@@ -17,10 +17,10 @@ institution="2=2"
 order_by='op.created'
 
 start="(now()::date - interval '1 month')"
-end="now()"
+end="CURRENT_TIMESTAMP"
 
 today="now()::date"
-this_month=$(now.sh -m)
+this_month=$(now.sh -m); [[ "$this_month" == 0* ]] && this_month=${this_month:1:1}
 kotoshi=$(now.sh -y)
 
 limit=1000
@@ -111,14 +111,14 @@ do
     ;;
     --all|-a)
         start="'1900-01-01'"
-        end="now()"
+        end="CURRENT_TIMESTAMP"
     ;;
     --limit|--last)
         shift
         limit=$1
 
         start="'1900-01-01'"
-        end="now()"
+        end="CURRENT_TIMESTAMP"
         order_by='op.created desc'
     ;;
     --order-by|-o)
