@@ -40,7 +40,7 @@ do
     ;;
     --currency|-c)
       shift
-      currency="$1"
+      currency="${1^^}"
     ;;
     --expression|-x)
       shift
@@ -48,7 +48,7 @@ do
     ;;
     --tags|-t)
       shift
-      tags="'${1^^}'"
+      tags="${1^^}"
     ;;
     --extra|-e)
       shift
