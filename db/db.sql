@@ -87,10 +87,18 @@ create table products (
     name varchar not null,
     brand varchar,
     tags varchar,
+    ocr_tags varchar,
+    market_id bigint,
     description varchar,
     weight numeric not null default 1,
-    extra jsonb not null default '{}'
+    extra jsonb not null default '{}',
+    recurring integer,
+    product_type integer not null default 0
 );
+
+-- TODO create table product_type
+-- 0: uncategorized
+-- 1: fee
 
 create table product_ops (
     id serial PRIMARY KEY,
