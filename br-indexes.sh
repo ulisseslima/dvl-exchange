@@ -53,6 +53,7 @@ TR=7811
 CDI=4391
 IGP_M=189
 IPCA=433
+SELIC=
 
 index=${1^^}
 require index "index name"
