@@ -31,10 +31,17 @@ function assert_is_up() {
 function prompt() {
     keyname="$1"
     message="$2"
-    currval="${!keyname}"
+    action="$3"
+
+    currval=""
+    if [[ "$action" != override ]]; then
+        currval="${!keyname}"
+    fi
+    info "prompting $keyname [$action] $currval"
+
     set=false
 
-    while [[ ! -n "$currval" ]]
+    while [[ -z "$currval" ]]
 	do
 		err "'$keyname' not set. what's your $message?"
 		read currval
@@ -85,8 +92,9 @@ function local_db() {
     info "checking if postgresql client is available..."
     [[ "$(dpkg -l | grep -c postgresql-client)" -lt 1 ]] && return 0
 
-    info "checking if postgresql server is available..."
-    [[ "$(dpkg -l | grep postgresql | grep -c server)" -lt 1 ]] && return 0
+    # info "checking if postgresql server is available..."
+    # [[ "$(dpkg -l | grep postgresql | grep -c server)" -lt 1 ]] && return 0
+    # apparently no server anymore
 
     info "checking if db already created..."
     if [[ -n "$($MYDIR/psql.sh 'select id from tickers limit 1')" ]]; then
@@ -94,6 +102,11 @@ function local_db() {
     else
         # TODO check permissions, maybe echo commands to give necessary privileges
         info "we detected you have a postgresql server. installing database..."
+        check=$($MYDIR/psql.sh "select 1" 2>&1 || true)
+        if [[ "$check" == *fail* ]]; then
+            err "$check"
+            prompt DB_USER "enter database user" override
+        fi
 
         info "creating database..."
         $MYDIR/psql.sh --create-db

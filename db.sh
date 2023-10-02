@@ -16,7 +16,7 @@ if [[ ! -f $LOCAL_DB ]]; then
 fi
 
 function db() {
-    if [[ ! -n "$1" ]]; then
+    if [[ -z "$1" ]]; then
         err "no key specified"
         exit 1
     fi
@@ -25,6 +25,16 @@ function db() {
     if [[ -n "$2" ]]; then
         debug "saved to $LOCAL_DB"
     fi
+}
+
+function clear() {
+    if [[ -z "$1" ]]; then
+        err "no key specified"
+        exit 1
+    fi
+
+    clear_prop "$LOCAL_DB" "$1"
+    debug "cleared value for $LOCAL_DB/$1"
 }
 
 function db_dump() {

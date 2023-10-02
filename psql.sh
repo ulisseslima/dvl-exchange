@@ -13,6 +13,8 @@ CALLER=$(basename `readlink -f $0`)
 
 # TODO support for different ports and hosts
 connection="psql -U $DB_USER $DB_NAME"
+debug "connection=$connection"
+
 ops='qAtX'
 separator="|"
 
@@ -28,7 +30,7 @@ fi
 
 if [[ "$query" == --create-db ]]; then
     info "starting db $DB_NAME ..."
-    psql -U $DB_USER -c "create database $DB_NAME"
+    psql -U $DB_USER postgres -c "create database $DB_NAME"
     exit 0
 fi
 
