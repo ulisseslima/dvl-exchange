@@ -37,9 +37,15 @@ function now_br() {
 }
 
 function dop_br() {
-  $query "select to_char($1, 'dd/mm/yyyy')"
-  # info "converting $1 to date: $result"
-  # read confirmation
+  date="$1"
+  debug "converting '$date' to date..."
+  if [[ "$date" =~ ^[0-9] ]]; then
+    # if it starts with a number, it's a literal date
+    $query "select to_char('$1'::date, 'dd/mm/yyyy')"
+  else
+    # otherwise, it's an expression
+    $query "select to_char($1, 'dd/mm/yyyy')"
+  fi
 }
 
 api=$MYDIR/api-bcb.sh
@@ -51,7 +57,7 @@ kotoshi=$(now.sh -y)
 # taxa referencial (poupança)
 TR=7811
 CDI=4391
-IGP_M=189
+IGPM=189
 IPCA=433
 SELIC=
 
@@ -117,7 +123,7 @@ do
 done
 
 info "checking $index [#$index_id]
- from $start to $end"
+ - from $start to $end"
 
 response=$($api GET "bcdata.sgs.${index_id}/dados" "dataInicial=$(dop_br "${start}")&dataFinal=$(dop_br "${end}")")
 last_date=0
@@ -125,7 +131,7 @@ accumulated_price=0
 while read item
 do
   require item
-  info "inserting $index [$index_id]: $item"
+  debug "got $index [$index_id]: $item"
 
   date=$(echo "$item" | jq -r .data)
   price=$(echo "$item" | jq -r .valor)
@@ -143,6 +149,8 @@ do
   last_price=$($query "select price from index_snapshots where index_id = $index_id and created = to_date('$date', 'DD/MM/YYYY')")
 
   if [[ -z "$last_price" ]]; then
+    info "inserting $index [$index_id]: $item"
+
     $query "insert into index_snapshots (index_id, index_name, created, price, currency)
       SELECT $index_id, '$index', to_date('$date', 'DD/MM/YYYY'), $price, 'BRL'
     "
