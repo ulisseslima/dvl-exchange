@@ -14,6 +14,9 @@ query=$MYDIR/psql.sh
 
 input="$1"
 date="$(now.sh -dt)"
+if [[ -n "$2" ]]; then
+    date="$2"
+fi
 pattern='*.txt'
 keep=true
 debug=true
@@ -53,6 +56,7 @@ function scan() {
         fi
     done
 
+    # psm 6, best for simple line by line text
     tesseract "$processed" "$out" --psm 6 -c tessedit_char_whitelist="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ. (),"
 
     >&2 echo "$(cat $out.txt)"
@@ -76,8 +80,11 @@ function process_scan() {
     line=$(echo "$1" | tr ',' '.' | tr -s ' ')
     [[ -z "$line" ]] && return 0
 
-    if [[ "${line:1:1}" == " " ]]; then
+    multiplier=1
+
+    if [[ -z "$buffer" && "${line:1:1}" == " " ]]; then
         store=oxxo
+        info "store=$store"
 
         line=$(echo "$line" | cut -d' ' -f3-)
         id=$(echo "$1" | cut -d' ' -f2)
@@ -88,16 +95,19 @@ function process_scan() {
             from products 
             where market_id = '$id'
             or ocr_tags like '%${product}%'
-            or similarity(name||' '||brand, '${product}') > 0.4
+            or similarity(name||' '||brand, '${product}') > 0.15
             order by similarity(name||' '||brand, '${product}') desc
             limit 1
         ")
 
         product_id=$(echo "$name_brand" | cut -d'|' -f1)
         if [[ -z "$product_id" ]]; then
-            err "couldn't find a '$product' #$id"
-            read confirmation </dev/tty
-            return 0
+            err "couldn't find a '$product' #$id. enter manually in the format name|brand"
+            read name_brand </dev/tty
+            name_brand="0|${name_brand}"
+            info "name_brand=$name_brand"
+        else
+            amount=$($query "select amount from product_ops where product_id = $product_id order by id desc limit 1")
         fi
         name=$(echo "$name_brand" | cut -d'|' -f2)
         brand=$(echo "$name_brand" | cut -d'|' -f3)
@@ -105,8 +115,67 @@ function process_scan() {
         multiplier=$(echo "$line" | rev | cut -d' ' -f4 | rev | cut -d'.' -f1)
         unit_price=$(echo "$line" | rev | cut -d' ' -f3 | rev)
         amount=$($query "select amount from product_ops where product_id = $product_id and trunc(price, 0) = trunc(${unit_price}, 0) order by id desc limit 1")
+    elif [[ "$buffer" == true || $(echo "$line" | rev | cut -d' ' -f1) != *.* ]]; then
+        store=assaí
+        info "store=$store"
+
+        if [[ "$buffer" != true ]]; then
+            buffer=true
+            amount=''
+
+            line1=$(echo "$line" | cut -d' ' -f2-)
+            info "line1: '$line1'"
+
+            id=$(echo "$line1" | cut -d' ' -f1)
+
+            product=$(echo "$line1" | cut -d' ' -f2-)
+            info "searching for '$product' and similar..."
+            name_brand=$($query "
+                select id, name, brand 
+                from products 
+                where market_id = '$id'
+                or ocr_tags like '%${product}%'
+                or similarity(name||' '||brand, '${product}') > 0.15
+                order by similarity(name||' '||brand, '${product}') desc
+                limit 1
+            ")
+
+            product_id=$(echo "$name_brand" | cut -d'|' -f1)
+            if [[ -z "$product_id" ]]; then
+                err "couldn't find a '$product' #$id. enter manually in the format name|brand"
+                read name_brand </dev/tty
+                name_brand="0|${name_brand}"
+                info "name_brand=$name_brand"
+            else
+                amount=$($query "select amount from product_ops where product_id = $product_id order by id desc limit 1")
+            fi
+            name=$(echo "$name_brand" | cut -d'|' -f2)
+            brand=$(echo "$name_brand" | cut -d'|' -f3)
+        else
+            buffer=false
+
+            line2="$line"
+            info "line2: '$line2'"
+
+            unit_price=$(echo "$line2" | rev | cut -d' ' -f1 | rev)
+
+            amount2=$(echo "$line2" | cut -d' ' -f1)
+            if [[ -n "$amount2" && "$amount2" != '1.0'* ]]; then
+                amount="$amount2"
+            elif [[ -n "$product_id" ]]; then
+                amount2=$($query "select amount from product_ops where product_id = $product_id and trunc(price, 0) = trunc(${unit_price}, 0) order by id desc limit 1")
+                if [[ -n "$amount2" ]]; then
+                    amount="$amount2"
+                fi
+            fi
+
+            if [[ -z "$amount" ]]; then
+                amount="$amount2"
+            fi
+        fi
     else
         store=yamauchi
+        info "store=$store"
 
         line=$(echo "$line" | cut -d' ' -f2-)
         id=$(echo "$1" | cut -d' ' -f1)
@@ -121,22 +190,25 @@ function process_scan() {
                 where market_id = '$id'
                 or ocr_tags like '%${id}%'
                 or ocr_tags like '%${product^^}%'
-                or similarity(name||' '||brand, '${product^^}') > 0.4
+                or similarity(name||' '||brand, '${product^^}') > 0.15
                 order by similarity(name||' '||brand, '${product^^}') desc
                 limit 1
             ")
 
             product_id=$(echo "$name_brand" | cut -d'|' -f1)
             if [[ -z "$product_id" ]]; then
-                err "couldn't find a '$product' # $id - enter product name manually:"
-                read product </dev/tty
+                err "couldn't find a '$product' #$id. enter manually in the format name|brand"
+                read name_brand </dev/tty
+                name_brand="0|${name_brand}"
+                info "name_brand=$name_brand"
+            else
+                amount=$($query "select amount from product_ops where product_id = $product_id order by id desc limit 1")
             fi
         done
 
         name=$(echo "$name_brand" | cut -d'|' -f2)
         brand=$(echo "$name_brand" | cut -d'|' -f3)
 
-        multiplier=1
         kg=$(echo "$line" | rev | cut -d' ' -f3 | rev)
         if [[ "$kg" == *KG* ]]; then
             amount=${kg//[!0-9.]/}
@@ -158,16 +230,33 @@ function process_scan() {
         fi
     fi
 
+    if [[ "$buffer" == true ]]; then
+        info "continuing on next line..."
+        return 0
+    fi
+
+    if [[ -z "$amount" || "$amount" == 0.00 ]]; then
+        info "defauting amount to 1..."
+        amount=1
+    fi
+
     echo "#$product_id $store '$name' '$brand' '$amount' '$unit_price' -d '$date' -x '*$multiplier'"
     if [[ $confirm == true ]]; then
         echo "confirm?"
         read confirmation </dev/tty
         if [[ "$confirmation" == n ]]; then
             return 0
+        elif [[ -n "$confirmation" ]]; then
+            name=$(echo "$confirmation" | cut -d'|' -f1)
+            brand=$(echo "$confirmation" | cut -d'|' -f2)
+            amount=$(echo "$confirmation" | cut -d'|' -f3)
+            unit_price=$(echo "$confirmation" | cut -d'|' -f4)
         fi
     fi
 
-    $query "update products set market_id = '$id' where id = $product_id and market_id is null"
+    if [[ -n "$product_id" ]]; then
+        $query "update products set market_id = '$id' where id = $product_id and market_id is null"
+    fi
     dvlx-new-product "$store" "$name" "$brand" $amount $unit_price -d "$date" -x "*$multiplier"
 }
 
