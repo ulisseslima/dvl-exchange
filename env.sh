@@ -32,7 +32,6 @@ LOGF=/tmp/$INSTALL_PREFIX.log
 CACHE=/tmp/$REPO_NAME
 mkdir -p $CACHE
 
-YFAPI_URL='https://yfapi.net'
 CSCOOPER_URL='https://api.currencyscoop.com'
 API_CEI_URL='https://investidor.b3.com.br/api'
 
@@ -66,10 +65,6 @@ function check_installed() {
 	echo ""
 	echo "checking if $1 is installed..."
 	$@
-}
-
-function yfapi_header_key() {
-    echo "X-API-KEY: $YFAPI_KEY"
 }
 
 function cscooper_query_key() {

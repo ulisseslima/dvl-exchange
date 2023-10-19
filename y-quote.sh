@@ -28,9 +28,9 @@ do
     shift
 done
 
-require tickers
+require tickers "tickers separated by commas"
 
-response=$($yfapi GET "v6/finance/quote?symbols=$tickers")
+response=$($yfapi GET "qu/quote/$tickers")
 if [[ -z "$response" ]]; then
   err "no response"
   exit 9

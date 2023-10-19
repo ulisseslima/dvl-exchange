@@ -1,19 +1,22 @@
 #!/bin/bash -e
-# https://www.yahoofinanceapi.com/
-# https://www.yahoofinanceapi.com/dashboard
+# https://rapidapi.com/sparior/api/yahoo-finance15
 MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
+
+YFAPI_URL='https://yahoo-finance15.p.rapidapi.com/api/yahoo'
 
 source $MYDIR/env.sh
 [[ -f $LOCAL_ENV ]] && source $LOCAL_ENV 
 source $MYDIR/log.sh
 
+function yfapi_header_key() {
+    echo "X-RapidAPI-Key: $YFAPI_KEY"
+}
+
 function do_request() {
 	method="$1"; shift
 	endpoint="$1"; shift
-	body="$1"; shift
-	#[[ -n "$body" ]] && body=" -d '${body//\"/\\\"}'"
 
 	curl_opts="--progress-bar"
 	if [[ $(debugging) == on ]]; then
@@ -22,27 +25,11 @@ function do_request() {
 
 	debug "$curl_opts -X $method $YFAPI_URL/$endpoint"
 	debug "$(yfapi_header_key)"
-	debug "body: $body"
 
 	request_cache="$CACHE/$1-$2.request.json"
-	if [[ -f "$body" ]]; then
-		cp "$body" $request_cache
-
-		curl $curl_opts -X $method "$YFAPI_URL/$endpoint"\
-			-d "@$body"\
-			-H "Content-Type: application/json"\
-			-H "$(yfapi_header_key)"
-	elif [[ -n "$body" ]]; then
-		echo "$body" > $request_cache
-
-		curl $curl_opts -X $method "$YFAPI_URL/$endpoint"\
-			-d "$body"\
-			-H "Content-Type: application/json"\
-			-H "$(yfapi_header_key)"
-	else
-		curl $curl_opts -X $method "$YFAPI_URL/$endpoint"\
-			-H "$(yfapi_header_key)"
-	fi
+	curl $curl_opts -X $method "$YFAPI_URL/$endpoint"\
+		-H "$(yfapi_header_key)"\
+		-H "X-RapidAPI-Host: yahoo-finance15.p.rapidapi.com"
 }
 
 endpoint="$1-$2"
@@ -51,7 +38,7 @@ mkdir -p $(dirname "$out")
 last_response=$(last_response_minutes "$out")
 if [[ "$last_response" -lt $API_REQUESTS_INTERVAL ]]; then
 	debug "last response to $endpoint was $last_response minutes ago. interval is $API_REQUESTS_INTERVAL minutes. returning cached response."
-	debug "cached response file: $out"
+	info "cached response file: $out"
 
 	# TODO return last response only if GET method. if POST, return error.
 	cat "$out"

@@ -21,7 +21,7 @@ if (process.argv[2]) {
 
 if (!json) throw new Error("needs JSON to process")
 
-let quotes = JSON.parse(json).quoteResponse.result
+let quotes = JSON.parse(json)
 
 ;(async function() {
 	const client = await pool.connect()
