@@ -87,6 +87,7 @@ do
       if [[ -n "$2" && "$2" != "-"* ]]; then
           shift
           m=$1
+          [[ -z "$m" ]] && m=$(now.sh -m)
 
           [[ $this_month -ge $m ]] && year=$kotoshi || year=$(($kotoshi-1))
 
@@ -101,6 +102,8 @@ do
         if [[ "$2" != "-"* ]]; then
             shift
             y=$1
+            [[ -z "$y" ]] && y=$(now.sh -y)
+
             start="'$y-01-01'::timestamp"
             end="('$y-01-01'::timestamp + interval '1 year, -1 day')"
         else
