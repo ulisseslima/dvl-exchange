@@ -150,7 +150,6 @@ do
   fi
 
   last_price=$($query "select price from index_snapshots where index_id = $index_id and created = to_date('$date', 'DD/MM/YYYY')")
-
   if [[ -z "$last_price" ]]; then
     info "inserting $index [$index_id]: $item"
 
