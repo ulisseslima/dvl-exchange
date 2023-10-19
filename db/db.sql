@@ -88,7 +88,7 @@ create table products (
     brand varchar,
     tags varchar,
     ocr_tags varchar,
-    market_id bigint,
+    market_id text,
     description varchar,
     weight numeric not null default 1,
     extra jsonb not null default '{}',
