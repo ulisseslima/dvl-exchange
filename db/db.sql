@@ -11,7 +11,9 @@ create table tickers (
     value numeric default 0,
     score numeric,
     currency varchar,
-    tax_id varchar
+    tax_id varchar,
+    details varchar,
+    institution varchar
 );
 
 create table exchanges (
