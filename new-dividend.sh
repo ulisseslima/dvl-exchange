@@ -13,7 +13,8 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
-  info "usage example: $0 AGG 2.41 $(now.sh -d)"
+  info "usage example:"
+  echo "$ME AGG 2.41 $(now.sh -d)"
   exit 0
 fi
 
