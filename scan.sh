@@ -10,13 +10,10 @@ source $MYDIR/env.sh
 source $MYDIR/log.sh
 source $(real require.sh)
 
-query=$MYDIR/psql.sh
+psql=$MYDIR/psql.sh
 
 input="$1"
 date="$(now.sh -dt)"
-if [[ -n "$2" ]]; then
-    date="$2"
-fi
 pattern='*.txt'
 keep=true
 debug=true
@@ -26,7 +23,7 @@ shift
 function pre_process() {
     image="$1"
     threshold=$2
-    
+
     # apparently a max letter height of 30 pixels help. images are usually 3 times that, so we resize by 33%
     resized="$(dirname $image)/33.$(basename $image)"
 
@@ -82,23 +79,24 @@ function process_scan() {
 
     multiplier=1
 
-    if [[ -z "$buffer" && "${line:1:1}" == " " ]]; then
-        store=oxxo
+    if [[ "$store" == oxxo ]]; then
         info "store=$store"
 
-        line=$(echo "$line" | cut -d' ' -f3-)
-        id=$(echo "$1" | cut -d' ' -f2)
+        line=$(echo "$line" | cut -d' ' -f2-)
+        id=$(echo "$1" | cut -d' ' -f1)
 
         product=$(echo "$line" | rev | cut -d' ' -f5- | rev)
-        name_brand=$($query "
-            select id, name, brand 
-            from products 
+	    similar_query="
+            select id, name, brand
+            from products
             where market_id = '$id'
             or ocr_tags like '%${product}%'
             or similarity(name||' '||brand, '${product}') > 0.15
             order by similarity(name||' '||brand, '${product}') desc
             limit 1
-        ")
+        "
+	    debug "$similar_query"
+        name_brand=$($psql "$similar_query")
 
         product_id=$(echo "$name_brand" | cut -d'|' -f1)
         if [[ -z "$product_id" ]]; then
@@ -107,17 +105,34 @@ function process_scan() {
             name_brand="0|${name_brand}"
             info "name_brand=$name_brand"
         else
-            amount=$($query "select amount from product_ops where product_id = $product_id order by id desc limit 1")
+            amount=$($psql "select amount from product_ops where product_id = $product_id order by id desc limit 1")
         fi
         name=$(echo "$name_brand" | cut -d'|' -f2)
         brand=$(echo "$name_brand" | cut -d'|' -f3)
 
         multiplier=$(echo "$line" | rev | cut -d' ' -f4 | rev | cut -d'.' -f1)
-        unit_price=$(echo "$line" | rev | cut -d' ' -f3 | rev)
-        amount=$($query "select amount from product_ops where product_id = $product_id and trunc(price, 0) = trunc(${unit_price}, 0) order by id desc limit 1")
-    elif [[ "$buffer" == true || $(echo "$line" | rev | cut -d' ' -f1) != *.* ]]; then
+        if [[ $(nan.sh $multiplier) == true ]]; then
+            multiplier=1
+        fi
+        
+        unit_price=$(echo "$line" | rev | cut -d' ' -f3 | rev | tr -d '()')
+        if [[ $(nan.sh $unit_price) == true ]]; then
+            err "fix unit price: $unit_price"
+            read unit_price
+        fi
+
+        if [[ -n "$product_id" ]]; then
+                amount=$($psql "select amount from product_ops where product_id = $product_id and trunc(price, 0) = trunc(${unit_price}, 0) order by id desc limit 1" || true)
+        fi
+
+        if [[ -z "$amount" ]]; then
+            err "$id - $product - no amount for #$product_id ($name) [$brand] with unit price '${unit_price}' - enter manually or press enter to skip product..."
+            read amount </dev/tty
+            [[ -z "$amount" ]] && return 0
+        fi
+    elif [[ "$store" == 'assaí' ]]; then
         store=assaí
-        info "store=$store"
+        info "store=$store [$buffer]"
 
         if [[ "$buffer" != true ]]; then
             buffer=true
@@ -130,9 +145,9 @@ function process_scan() {
 
             product=$(echo "$line1" | cut -d' ' -f2-)
             info "searching for '$product' and similar..."
-            name_brand=$($query "
-                select id, name, brand 
-                from products 
+            name_brand=$($psql "
+                select id, name, brand
+                from products
                 where market_id = '$id'
                 or ocr_tags like '%${product}%'
                 or similarity(name||' '||brand, '${product}') > 0.15
@@ -147,7 +162,7 @@ function process_scan() {
                 name_brand="0|${name_brand}"
                 info "name_brand=$name_brand"
             else
-                amount=$($query "select amount from product_ops where product_id = $product_id order by id desc limit 1")
+                amount=$($psql "select amount from product_ops where product_id = $product_id order by id desc limit 1")
             fi
             name=$(echo "$name_brand" | cut -d'|' -f2)
             brand=$(echo "$name_brand" | cut -d'|' -f3)
@@ -161,9 +176,16 @@ function process_scan() {
 
             amount2=$(echo "$line2" | cut -d' ' -f1)
             if [[ -n "$amount2" && "$amount2" != '1.0'* ]]; then
-                amount="$amount2"
+                if [[ $(nan.sh $amount2) == false && "$amount2" == *'.000' ]]; then
+                    multiplier=$(echo "$amount2" | cut -d'.' -f1)
+                    is_multiplier=true
+                fi
+            fi
+
+            if [[ -n "$amount2" && "$amount2" != '1.0'* && "$is_multiplier" != true ]]; then
+                amount=$(echo "$amount2" | tr 'O' '0')
             elif [[ -n "$product_id" ]]; then
-                amount2=$($query "select amount from product_ops where product_id = $product_id and trunc(price, 0) = trunc(${unit_price}, 0) order by id desc limit 1")
+                amount2=$($psql "select amount from product_ops where product_id = $product_id and trunc(price, 0) = trunc(${unit_price}, 0) order by id desc limit 1")
                 if [[ -n "$amount2" ]]; then
                     amount="$amount2"
                 fi
@@ -173,8 +195,7 @@ function process_scan() {
                 amount="$amount2"
             fi
         fi
-    else
-        store=yamauchi
+    elif [[ "$store" == 'yamauchi' ]]; then
         info "store=$store"
 
         line=$(echo "$line" | cut -d' ' -f2-)
@@ -184,9 +205,9 @@ function process_scan() {
         product_id=''
         while [[ -z "$product_id" ]]; do
             product="${product^^}"
-            name_brand=$($query "
-                select id, name, brand 
-                from products 
+            name_brand=$($psql "
+                select id, name, brand
+                from products
                 where market_id = '$id'
                 or ocr_tags like '%${id}%'
                 or ocr_tags like '%${product^^}%'
@@ -201,8 +222,9 @@ function process_scan() {
                 read name_brand </dev/tty
                 name_brand="0|${name_brand}"
                 info "name_brand=$name_brand"
+                break
             else
-                amount=$($query "select amount from product_ops where product_id = $product_id order by id desc limit 1")
+                amount=$($psql "select amount from product_ops where product_id = $product_id order by id desc limit 1")
             fi
         done
 
@@ -221,9 +243,12 @@ function process_scan() {
                 read unit_price </dev/tty
             fi
 
-            amount=$($query "select amount from product_ops where product_id = $product_id and trunc(price, 0) = trunc(${unit_price}, 0) order by id desc limit 1")
+            if [[ -z "$product_id" && -z "$unit_price" ]]; then
+                amount=$($psql "select amount from product_ops where product_id = $product_id and trunc(price, 0) = trunc(${unit_price}, 0) order by id desc limit 1")
+            fi
+
             if [[ -z "$amount" ]]; then
-                err "$id - $product - no amount for $product_id ($name) [$brand] with unit price '${unit_price}' - enter manually or skip..."
+                err "$id - $product - no amount for #$product_id ($name) [$brand] with unit price '${unit_price}' - enter manually or skip..."
                 read amount </dev/tty
                 [[ -z "$amount" ]] && return 0
             fi
@@ -231,7 +256,7 @@ function process_scan() {
     fi
 
     if [[ "$buffer" == true ]]; then
-        info "continuing on next line..."
+        info "[$buffer] continuing on next line..."
         return 0
     fi
 
@@ -241,8 +266,9 @@ function process_scan() {
     fi
 
     echo "#$product_id $store '$name' '$brand' '$amount' '$unit_price' -d '$date' -x '*$multiplier'"
+    echo "$name|$brand|$amount|$unit_price" | ctrlc.sh
     if [[ $confirm == true ]]; then
-        echo "confirm?"
+        echo "confirm? (fix values using the format name|brand|amount|unit_price [curr values on clipboard]) reject with 'n'"
         read confirmation </dev/tty
         if [[ "$confirmation" == n ]]; then
             return 0
@@ -255,7 +281,7 @@ function process_scan() {
     fi
 
     if [[ -n "$product_id" ]]; then
-        $query "update products set market_id = '$id' where id = $product_id and market_id is null"
+        $psql "update products set market_id = '$id' where id = $product_id and market_id is null"
     fi
     dvlx-new-product "$store" "$name" "$brand" $amount $unit_price -d "$date" -x "*$multiplier"
 }
@@ -286,8 +312,18 @@ do
         shift
         out="$1"
     ;;
+    --store)
+        shift
+        store="$1"
+    ;;
     --keep)
         keep=true
+    ;;
+    --oxxo)
+        store=oxxo
+    ;;
+    --assai)
+        store=assaí
     ;;
     --confirm)
         confirm=true
@@ -298,6 +334,8 @@ do
     esac
     shift
 done
+
+require store
 
 if [[ -d "$input" ]]; then
     scan_dir "$input"
