@@ -262,3 +262,30 @@ BEGIN
 END;
 $f$ LANGUAGE plpgsql;
 --/
+CREATE OR REPLACE FUNCTION similar(product_ varchar)
+RETURNS TEXT AS $f$
+DECLARE
+  _result record;
+  _last_buy text;
+BEGIN
+  select id,name,brand
+  from products
+  where market_id = product_
+  or ocr_tags like '%'||product_||'%'
+  or similarity(name||' '||brand, product_) > 0.15
+  order by similarity(name||' '||brand, product_) desc
+  limit 1
+  into _result;
+
+  select store.name||'#'||amount||'#'||price
+  from product_ops op
+  join stores store on store.id=op.store_id
+  where product_id=_result.id
+  order by op.id desc
+  limit 1
+  into _last_buy;
+
+  RETURN _result.id||'#'||_result.name||'#'||_result.brand||'#'||_last_buy;
+END;
+$f$ LANGUAGE plpgsql;
+--/
