@@ -21,7 +21,7 @@ if (process.argv[2]) {
 
 if (!json) throw new Error("needs JSON to process")
 
-let quotes = JSON.parse(json)
+let quotes = JSON.parse(json).body
 
 ;(async function() {
 	const client = await pool.connect()
@@ -30,7 +30,7 @@ let quotes = JSON.parse(json)
 		let quote = quotes[i]
 		if (!quote) continue
 
-		console.log(`${quote.symbol}: ${quote.regularMarketPrice} ${quote.currency}`)
+		console.log(`INFO process-quotes.js#33: ${quote.symbol}: ${quote.regularMarketPrice} ${quote.currency}`)
 
 		let results = await client.query(`select id from tickers where name ilike $1 limit 1`, [quote.symbol+"%"])
 		let row = results.rows[0]

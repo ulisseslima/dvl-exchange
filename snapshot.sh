@@ -14,7 +14,7 @@ query=$MYDIR/psql.sh
 quote=$MYDIR/y-quote.sh
 
 filter="$(now.sh -dt)"
-info "$filter - updating prices..."
+info "$filter - updating old prices..."
 
 function outdated_tickers() {
     $query "select ticker.name as tick 
