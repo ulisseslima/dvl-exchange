@@ -12,7 +12,7 @@ MYNAME() { echo "$(basename $(MYSELF))"; }
 CALLER=$(basename `readlink -f $0`)
 
 # TODO support for different ports and hosts
-connection="psql -U $DB_USER $DB_NAME"
+connection="psql -h localhost -U $DB_USER $DB_NAME"
 debug "connection=$connection"
 
 ops='qAtX'
@@ -30,7 +30,7 @@ fi
 
 if [[ "$query" == --create-db ]]; then
     info "starting db $DB_NAME ..."
-    psql -U $DB_USER postgres -c "create database $DB_NAME"
+    psql -U $DB_USER -h localhost postgres -c "create database $DB_NAME"
     exit 0
 fi
 
