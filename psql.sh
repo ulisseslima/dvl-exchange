@@ -69,8 +69,10 @@ do
 done
 
 if [[ -f "$query" ]]; then
+    debug "$(cat "$query")"
     result=$($connection -$ops --field-separator="$separator" < "$query")
 else
+    debug "$query"
     result=$($connection -$ops --field-separator="$separator" -c "$query")
 fi
 
