@@ -90,6 +90,8 @@ fi
 store_id=$($query "select id from stores where name = '${store_name}' or name iLIKE '%${store_name}%' limit 1")
 if [[ -z "$store_id" ]]; then
   info "creating new store: $store_name"
+  info "current categories:"
+  $query "select category, (array_agg(name))[1:2] examples from stores group by category" --full
   
   info "enter its category:"
   read category
