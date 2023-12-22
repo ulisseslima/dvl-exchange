@@ -312,7 +312,7 @@ do
         shift
         out="$1"
     ;;
-    --store)
+    --store|-s)
         shift
         store="$1"
     ;;
