@@ -143,7 +143,8 @@ order by
 
 info "total spending of products between $($query "select $start") and $($query "select $end")"
 $query "select
-  round(sum(op.price), 2) as total
+  round(sum(op.price), 2) as spent,
+  round(sum(op.amount), 2) as amount
 from product_ops op
 join products product on product.id=op.product_id
 join stores store on store.id=op.store_id
@@ -151,4 +152,4 @@ where op.created between $interval
 and simulation is $simulation
 and $and
 and $brand
-"
+" --full
