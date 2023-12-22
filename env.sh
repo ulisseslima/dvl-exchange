@@ -109,6 +109,12 @@ function blanks() {
 }
 
 ##
+# date ops
+function dop() {
+    dop.sh "$1" -c "$($MYDIR/psql.sh --connection)"
+}
+
+##
 # for math ops
 function op() {
     expression="$1"
