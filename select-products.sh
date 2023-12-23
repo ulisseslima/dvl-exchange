@@ -18,7 +18,7 @@ brand="2=2"
 order_by='total_spent desc'
 
 start="(now()::date - interval '1 month')"
-end="now()"
+end="CURRENT_TIMESTAMP"
 
 today="now()::date"
 this_month=$(now.sh -m)
@@ -51,6 +51,7 @@ do
     --category|--cat|-c)
         shift
         name="${1^^}"
+        category_filter=true
         and="$and and store.category like '%${name}%'"
     ;;
     --brand|-b)
@@ -103,7 +104,7 @@ do
     ;;
     --all|-a)
         start="'1900-01-01'"
-        end="now()"
+        end="CURRENT_TIMESTAMP"
     ;;
     --order-by|-o)
         shift
@@ -141,10 +142,28 @@ order by
   $order_by
 " --full
 
-info "total spending of products between $($query "select $start") and $($query "select $end")"
+if [[ -z "$category_filter" ]]; then
+    info -n "total spending of products between $($query "select $start") and $($query "select $end") by category"
+    $query "select 
+      store.category,
+      round(sum(op.price), 2) as total_spent,
+      round(sum(op.amount), 2) as total_amount
+    from product_ops op
+    join products product on product.id=op.product_id
+    join stores store on store.id=op.store_id
+    where op.created between $interval
+    and simulation is $simulation
+    and $and
+    and $brand
+    group by store.category
+    order by $order_by
+    " --full
+fi
+
+info -n "total spending of products between $($query "select $start") and $($query "select $end")"
 $query "select
-  round(sum(op.price), 2) as spent,
-  round(sum(op.amount), 2) as amount
+  round(sum(op.price), 2) as total_spent,
+  round(sum(op.amount), 2) as total_amount
 from product_ops op
 join products product on product.id=op.product_id
 join stores store on store.id=op.store_id
