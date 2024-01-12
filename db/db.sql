@@ -289,3 +289,33 @@ BEGIN
 END;
 $f$ LANGUAGE plpgsql;
 --/
+CREATE OR REPLACE FUNCTION similars(product_ varchar)
+RETURNS TABLE (
+  pid integer,
+  pname varchar,
+  pbrand varchar,
+  opamount numeric,
+  opprice numeric
+) AS $f$
+DECLARE
+  _result record;
+  _last_buy text;
+BEGIN
+  RETURN QUERY
+    select 
+      product.id pid, 
+      product.name pname, 
+      product.brand pbrand, 
+      max(op.amount) opamount, 
+      max(op.price) opprice
+    from products product
+    join product_ops op on op.product_id=product.id
+    where market_id = product_
+    or ocr_tags like '%'||product_||'%'
+    or similarity(name||' '||brand, product_) > 0.15
+    group by product.id
+    order by similarity(name||' '||brand, product_) desc
+  ;
+END;
+$f$ LANGUAGE plpgsql;
+--/
