@@ -13,10 +13,12 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
-  info "e.g.: $0 BUY 40 TICKER 677.60 USD --date '2020-12-02'"
-  info "note: price is the total price (amount*units). you can use math expressions. e.g.:"
-  info "e.g.: $0 BUY 40 TICKER '16.94*40' USD"
-  info "date defaults to now if not specified"
+  echo "e.g.:"
+  echo "$(sh_name $ME) BUY 40 TICKER 677.60 USD --date '2020-12-02'"
+  echo && echo "note: price is the total price (amount*units). you can use math expressions. e.g.:"
+  echo "e.g.:"
+  echo "$(sh_name $ME) BUY 40 TICKER '16.94*40' USD"
+  echo "date defaults to now if not specified"
   exit 0
 fi
 
@@ -58,7 +60,7 @@ do
       simulation=true
     ;;
     -*) 
-      echo "$0 - bad option '$1'"
+      echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;
   esac

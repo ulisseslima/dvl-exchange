@@ -136,7 +136,7 @@ do
         order_by="$1"
     ;;
     -*)
-        echo "$0 - bad option '$1'"
+        echo "$(sh_name $ME) - bad option '$1'"
     ;;
     esac
     shift
@@ -227,5 +227,12 @@ else
     if [[ -n "$avg_dividends" ]]; then
         info "average monthly dividends based on the last $avg months earnings:"
         echo "${avg_dividends}"
+
+        if [[ -n "$rate" ]]; then
+            USD=$(echo "${avg_dividends}" | grep USD | cut -d'|' -f1)
+            BRL=$(echo "${avg_dividends}" | grep BRL | cut -d'|' -f1)
+            ALL_TO_BRL=$(op "$BRL+($USD*$rate)")
+            echo "=$ALL_TO_BRL BRL"
+        fi
     fi
 fi

@@ -114,7 +114,7 @@ do
       simulation=true
     ;;
     -*)
-        echo "$0 - bad option '$1'"
+        echo "$(sh_name $ME) - bad option '$1'"
     ;;
     esac
     shift

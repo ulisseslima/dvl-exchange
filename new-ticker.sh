@@ -13,7 +13,7 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
-  info "e.g.: $0 IVVB11.SA"
+  info "e.g.: $(sh_name $ME) IVVB11.SA"
   exit 0
 fi
 

@@ -13,7 +13,7 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
-  info "e.g.: $0 5000 USD --tickers TICKER1 [TICKER2 ...]"
+  info "e.g.: $(sh_name $ME) 5000 USD --tickers TICKER1 [TICKER2 ...]"
   info "note: if some of the tickers are in a different currency, cost is converted automatically"
   exit 0
 fi
@@ -77,7 +77,7 @@ do
       tax=$1
     ;;
     -*)
-      echo "$0 - bad option '$1'"
+      echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;
   esac

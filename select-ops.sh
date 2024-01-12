@@ -18,7 +18,7 @@ grouping="op.id, ticker.id"
 order_by='max(op.created)'
 
 start="(now()::date - interval '1 month')"
-end="now()"
+end="CURRENT_TIMESTAMP"
 
 today="now()::date"
 this_month=$(now.sh -m)
@@ -106,7 +106,7 @@ do
         grouping="$1"
     ;;
     -*)
-        echo "$0 - bad option '$1'"
+        echo "$(sh_name $ME) - bad option '$1'"
     ;;
     esac
     shift

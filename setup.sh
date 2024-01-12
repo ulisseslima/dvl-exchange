@@ -65,7 +65,6 @@ function install() {
         name=$(basename $script)
 
         iname="$INSTALL_PREFIX-${name/.sh/}"
-        iname="${iname/-rr-/-}"
         fname="/usr/local/bin/$iname"
 
         sudo ln -s $script $fname

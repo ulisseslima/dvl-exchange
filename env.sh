@@ -172,3 +172,7 @@ function prompt_conf() {
         source $LOCAL_ENV
     fi
 }
+
+function sh_name() {
+    echo "$INSTALL_PREFIX-${1/.sh/}"
+}
