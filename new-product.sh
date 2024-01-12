@@ -13,7 +13,7 @@ source $(real require.sh)
 query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
-  info "e.g.: $0 WALMART 'ENERGY DRINK' 'RED BULL' 0.250 1.56 -x '*4' --date '2020-12-02'"
+  info "e.g.: $(sh_name $ME) WALMART 'ENERGY DRINK' 'RED BULL' 0.250 1.56 -x '*4' --date '2020-12-02'"
   exit 0
 fi
 
@@ -65,7 +65,7 @@ do
       simulation=true
     ;;
     -*) 
-      echo "$0 - bad option '$1'"
+      echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;
   esac
@@ -91,7 +91,12 @@ store_id=$($query "select id from stores where name = '${store_name}' or name iL
 if [[ -z "$store_id" ]]; then
   info "creating new store: $store_name"
   info "current categories:"
-  $query "select category, (array_agg(name))[1:2] examples from stores group by category" --full
+  $query "select 
+    count(category) n, category, (array_agg(name))[1:2] examples 
+    from stores 
+    group by category
+    order by category
+  " --full
   
   info "enter its category:"
   read category
