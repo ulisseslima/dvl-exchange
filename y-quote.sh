@@ -30,6 +30,8 @@ done
 
 require tickers "tickers separated by commas"
 
+# original (deprecated) API
+# response=$($yfapi GET "v6/finance/quote?symbols=$tickers")
 response=$($yfapi GET "qu/quote/$tickers")
 if [[ -z "$response" ]]; then
   err "no response"
