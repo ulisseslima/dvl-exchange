@@ -64,6 +64,8 @@ do
   shift
 done
 
+require created "[-d] date of purchase"
+
 match=$($psql "select similar('$product')")
 
 product_id=$(echo "$match" | cut -d'#' -f1)
@@ -86,6 +88,9 @@ last_op_price=$(echo "$match" | cut -d'#' -f6)
 if [[ -n "$price" ]]; then
   last_op_price="$price"
 fi
+
+echo "last similar buy:"
+echo "$match"
 
 echo "confirm?"
 echo "'$last_op_store' '$product_name' '$product_brand' $last_op_amount $last_op_price -d '$created'"
