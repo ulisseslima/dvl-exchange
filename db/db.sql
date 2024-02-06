@@ -262,20 +262,27 @@ BEGIN
 END;
 $f$ LANGUAGE plpgsql;
 --/
+-- to activate debug: set client_min_messages to 'debug';
 CREATE OR REPLACE FUNCTION similar(product_ varchar)
 RETURNS TEXT AS $f$
 DECLARE
   _result record;
   _last_buy text;
 BEGIN
-  select id,name,brand
-  from products
+  select 
+    product.id,
+    product.name,
+    product.brand
+  from products product
+  join product_ops op on op.product_id=product.id
   where market_id = product_
   or ocr_tags like '%'||product_||'%'
   or similarity(name||' '||brand, product_) > 0.15
   order by similarity(name||' '||brand, product_) desc
   limit 1
   into _result;
+
+  raise debug 're: %', _result;
 
   select store.name||'#'||amount||'#'||price
   from product_ops op
@@ -284,6 +291,8 @@ BEGIN
   order by op.id desc
   limit 1
   into _last_buy;
+
+  raise debug 'last: %', _last_buy;
 
   RETURN _result.id||'#'||_result.name||'#'||_result.brand||'#'||_last_buy;
 END;
