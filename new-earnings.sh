@@ -53,6 +53,11 @@ do
     --full-time)
       amount=160
     ;;
+    --fraction)
+      shift
+      fraction=$1
+      amount=$fraction
+    ;;
     *) 
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
@@ -69,6 +74,9 @@ echo "amount: $amount - rate: $rate"
 if [[ -n "$rate" ]]; then
   amount=$(echo "scale=2; $total/$rate" | bc)
   info "calculated amount (total/rate): $amount"
+elif [[ -n "$fraction" ]]; then
+  value=$(cross-multiply.sh $fraction $total 100 x)
+  info "simulated 100% from $total as ${fraction}%: $value"
 fi
 
 institution_id=$($query "select id from institutions where id iLIKE '${institution}%' limit 1")
@@ -87,14 +95,18 @@ if [[ "$currency" == USD ]]; then
   require rate
 fi
 
-info "'$institution_id', '$created', ($total/$amount), $amount, $total, '$currency', $rate"
+if [[ -z "$value" ]]; then
+  value="($total/$amount)"
+  info "defaulting value to: $total/$amount"
+fi
+info "'$institution_id', '$created', $value, $amount, $total, '$currency', $rate"
 
 id=$($query "insert into earnings (institution_id, created, value, amount, total, currency, rate)
-  select '$institution_id', '$created', ($total/$amount), $amount, $total, '$currency', $rate
+  select '$institution_id', '$created', $value, $amount, $total, '$currency', $rate
   returning id
 ")
 
 if [[ -n "$id" ]]; then
   info "success: $id"
-  $MYDIR/select-earnings.sh -t $institution --all
+  $MYDIR/select-earnings.sh -t "$institution" --years 1
 fi
