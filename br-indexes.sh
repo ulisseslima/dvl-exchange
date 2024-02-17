@@ -97,6 +97,7 @@ do
           start="($today - interval '1 month')"
           end="$today"
       fi
+      accumulate=false
     ;;
     --year|-y)
         if [[ "$2" != "-"* ]]; then
@@ -115,8 +116,13 @@ do
       shift
       n=$1
 
+      if [[ "$2" != "-"* ]]; then
+          shift
+          today="'$1'::date"
+          info "considering start date as: $today"
+      fi
+
       start="($today - interval '$n months')"
-      accumulate=true
     ;;
     -*)
       echo "$(sh_name $ME) - bad option '$1'"
@@ -147,6 +153,9 @@ do
 
   if [[ $accumulate == true ]]; then
     accumulated_price=$(op $accumulated_price+$price)
+  else
+    accumulated_price=$price
+    break
   fi
 
   last_price=$($query "select price from index_snapshots where index_id = $index_id and created = to_date('$date', 'DD/MM/YYYY')")
