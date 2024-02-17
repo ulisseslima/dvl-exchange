@@ -10,6 +10,15 @@ source $MYDIR/env.sh
 source $MYDIR/log.sh
 source $(real require.sh)
 
+##
+# called on error
+function failure() {
+  local lineno=$1
+  local msg=$2
+  echo "Failed at $lineno: $msg"
+}
+trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
+
 psql=$MYDIR/psql.sh
 
 and="1=1"
@@ -73,6 +82,7 @@ do
             start="'$y-01-01'"
             end="('$y-01-01'::timestamp + interval '1 year')"
         else
+            # TODO: not working:
             start="($today - interval '1 year')"
             end="$today"
         fi
