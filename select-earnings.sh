@@ -76,15 +76,14 @@ do
         fi
     ;;
     --year|-y)
-        if [[ "$2" != "-"* ]]; then
+        if [[ -n "$2" && "$2" != "-"* ]]; then
             shift
             y=$1
             start="'$y-01-01'"
             end="('$y-01-01'::timestamp + interval '1 year')"
         else
-            # TODO: not working:
             start="($today - interval '1 year')"
-            end="$today"
+            end="($today + interval '1 day')"
         fi
     ;;
     --years)
