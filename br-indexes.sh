@@ -62,7 +62,7 @@ IPCA=433
 SELIC=
 
 index=${1^^}
-require index "index name"
+require index "arg1: index name"
 
 index_id=${!index}
 require index_id "index ID"
