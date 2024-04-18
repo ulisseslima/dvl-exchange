@@ -142,6 +142,16 @@ create table index_snapshots (
     PRIMARY KEY(index_id, created)
 );
 
+create table splits (
+    id serial PRIMARY KEY,
+    asset_id bigint not null references assets on DELETE CASCADE,
+    ticker_id bigint not null references tickers on DELETE CASCADE,
+    created timestamp default now(),
+    reverse boolean not null,
+    old_amount numeric not null,
+    new_amount numeric not null
+);
+
 -- region specific: BR
 create table br_simples_nacional (
     id serial PRIMARY KEY,
