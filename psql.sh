@@ -77,7 +77,7 @@ else
 fi
 
 if [[ -z "$field" ]]; then
-    echo "$result"
+    echo -e "$result"
 else
     echo "$result" | cut -d"$separator" -f$field
 fi
