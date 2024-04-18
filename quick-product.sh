@@ -15,12 +15,18 @@ psql=$MYDIR/psql.sh
 product="$1"
 require product 'product line as it appears in the receipt'
 
+created="$(now.sh -dt)"
+
 while test $# -gt 0
 do
   case "$1" in
     --date|-d|--created)
       shift
       created="$1"
+      if [[ "$created" == now ]]; then
+        created="$(now.sh -dt)"
+      fi
+
       if [[ "$created" != *':'* ]]; then
         created="$created $(now.sh -t)"
       fi
