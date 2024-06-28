@@ -165,7 +165,7 @@ if [[ "$group_by" == "month" ]]; then
     $psql "select
     round(sum(total), 2) as USD,
     round(sum(brl), 2) as BRL,
-    percentage(sum(brl), $dividends_tax) as taxes
+    percentage(sum(brl), $dividends_tax) as taxes_in_brl
     from ($query) op
     " --full
 else
@@ -230,9 +230,11 @@ else
 
         if [[ -n "$rate" ]]; then
             USD=$(echo "${avg_dividends}" | grep USD | cut -d'|' -f1)
-            BRL=$(echo "${avg_dividends}" | grep BRL | cut -d'|' -f1)
-            ALL_TO_BRL=$(op "$BRL+($USD*$rate)")
-            echo "=$ALL_TO_BRL BRL"
+            if [[ -n "$USD" ]]; then
+                BRL=$(echo "${avg_dividends}" | grep BRL | cut -d'|' -f1)
+                ALL_TO_BRL=$(op "$BRL+($USD*$rate)")
+                echo "=$ALL_TO_BRL BRL"
+            fi
         fi
     fi
 fi
