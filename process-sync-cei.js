@@ -37,6 +37,16 @@ const pool = new Pool({
 	password: process.env.DB_PASS,
 })
 
+const dateWithoutTz = (dateString, offset) => {
+	const date = new Date(dateString)
+	date.setDate(date.getDate()+(offset))
+
+	const year = date.getFullYear()
+	const month = String(date.getMonth() + 1).padStart(2, '0')
+	const day = String(date.getDate()).padStart(2, '0')
+	return `${year}-${month}-${day}T00:00:00`
+};
+
 let json = undefined
 console.log("connecting to local db...")
 
@@ -152,7 +162,7 @@ let itens = JSON.parse(json).itens
 					console.log(`	└ dividend saved`)
 					break
 				} case 'Transferência - Liquidação': {
-					console.log(`	* processing ops >`)
+					console.log(`	* processing op >`)
 
 					let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
 					let asset = assets.rows[0]
@@ -170,12 +180,29 @@ let itens = JSON.parse(json).itens
 						console.log("	└ op already saved")
 						continue
 					}
+
+					const startDate = dateWithoutTz(item.data, -3) // 3 business days to process
+
+					console.log(`searching matching loan for:`, {ticker: ticker.id, amount: movimentacao.quantidade, dateA: startDate, dateB: item.data})
+					let loan = await client.query(`
+						select id from loans
+						where ticker_id = $1
+						and amount = $2
+						and created between $3 and $4
+					`, [ticker.id, movimentacao.quantidade, startDate, item.data])
+
+					if (loan?.rows[0]?.count > 0) {
+						console.log(`	└ skipping loan #${loan.rows[0].id}`)
+						continue
+					} else {
+						console.log(`	└ no matching loan found`)
+					}
 			
 					await client.query(
 						'insert into asset_ops (asset_id, created, price, amount, currency, institution, kind) values ($1, $2, $3, $4, $5, $6, $7)', 
 						[asset.id, item.data, movimentacao.valorOperacao, movimentacao.quantidade, 'BRL', movimentacao.instituicao, 'BUY']
 					)
-					console.log(`	└ op saved`)
+					console.log(`	└ ${BgBlack}${FgWhite}op saved${Reset}`)
 
 					await client.query(
 						`update assets set amount=amount+$1, cost=cost+$2, value=0 where id = $3`,
@@ -213,6 +240,14 @@ let itens = JSON.parse(json).itens
 					`, [asset.id, ticker.id, amount, (amount+(movimentacao.quantidade)), ((amount+(movimentacao.quantidade))<amount)]
 					)
 					console.log(`	└- ${BgCyan}${FgBlue}split registered from ${amount} to ${movimentacao.quantidade}${Reset}`)
+
+					await client.query(`
+						insert into asset_ops 
+						(asset_id,kind,amount,price,currency,simulation) 
+						values 
+						($1,   'SPLIT',$2,    0,    'BRL',   false);
+					`, [asset.id, movimentacao.quantidade]
+					)
 			
 					break
 				} default: {
