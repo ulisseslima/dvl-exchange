@@ -91,13 +91,8 @@ do
         n=$1
         
         d1="$today"
-        if [[ -n "$2" && "$2" != -* ]]; then
-            shift
-            d1="'$1'::date"
-        fi
-
         start="($d1 - interval '$n years')"
-        end="$d1"
+        end="($d1 + interval '1 day')"
     ;;
     --months)
         shift
@@ -110,7 +105,7 @@ do
         fi
 
         start="($d1 - interval '$n months')"
-        end="$d1"
+        end="($d1 + interval '1 day')"
     ;;
     --until)
         shift

@@ -122,7 +122,7 @@ query="select
   max(asset.id)||'/'||ticker.id \"ass/tick\",
   ticker.name,
   round((1 * op.price::numeric / op.amount::numeric), 2) as unit,
-  op.*,
+  op.id,op.kind,op.amount,op.price,op.currency,op.created,op.rate,
   (case when op.currency = 'USD' then round((price*coalesce(op.rate, $rate)),2)::text else '-' end) BRL
 from asset_ops op
 join assets asset on asset.id=op.asset_id

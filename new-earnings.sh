@@ -108,5 +108,5 @@ id=$($query "insert into earnings (institution_id, created, value, amount, total
 
 if [[ -n "$id" ]]; then
   info "success: $id"
-  $MYDIR/select-earnings.sh -t "$institution" --years 1
+  $MYDIR/select-earnings.sh -t "$institution" --months 1
 fi

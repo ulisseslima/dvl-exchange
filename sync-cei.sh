@@ -15,7 +15,8 @@ query=$MYDIR/psql.sh
 
 start=$($query "select date_trunc('day',created)::date from dividends where currency = 'BRL' order by created desc limit 1")
 # cei apparently requires a very specific end date:
-end=$(dop "(now() - interval '2 days')::date")
+# end=$(dop "(now() - interval '2 days')::date")
+end=$(dop "('$start'::date + interval '30 days')::date")
 
 while test $# -gt 0
 do
