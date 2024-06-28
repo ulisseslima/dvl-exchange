@@ -17,12 +17,14 @@ simulation=false
 interval="'1900-01-01' and now()"
 ticker=""
 show='--full'
+percentage_diff="percentage_diff(price(ticker.id)*sum(op.amount), sum(op.price))"
 order="max(op.currency),
-  diff desc,
+  $percentage_diff desc,
   n desc
 "
 
 today="now()::date"
+
 while test $# -gt 0
 do
   case "$1" in
@@ -71,7 +73,7 @@ do
     ;;
     --select)
       shift
-      cols="$cols ,$1"
+      optional_cols="${1},"
     ;;
     --order-by-val)
       order="max(op.currency),
@@ -80,6 +82,7 @@ do
     ;;
     -*)
       echo "$(sh_name $ME) - bad option '$1'"
+      exit 1
     ;;
   esac
   shift
@@ -98,15 +101,18 @@ $query "select
   max(op.currency) as \"$\",
   round(sum(op.price*op.rate), 2) as BRL,
   round(price(ticker.id)*sum(op.amount), 2) as curr_val,
-  percentage_diff(price(ticker.id)*sum(op.amount), sum(op.price)) as diff
-  $cols
+  $optional_cols
+  (case 
+    when (${percentage_diff} > 0) then '${GREEN}'||${percentage_diff}||'${NC}'
+    else '${RED}'||${percentage_diff}||'${NC}'
+  end) as diff
 from asset_ops op
 join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
 where op.created between $interval
 and simulation is $simulation
 $ticker
-group by op.asset_id, ticker.id
+group by op.asset_id, ticker.id, asset.id
 order by
   $order
 " $show
