@@ -49,7 +49,7 @@ do
   shift
 done
 
-info "$fname's snapshot, ordered by cheapest price now:"
+info "$fname's snapshot, ordered by cheapest price now (compared to $(dop "${filter}::date")):"
 
 $query "select
   (select id from assets where ticker_id=ticker.id) asset_id,
