@@ -1,6 +1,9 @@
 -- https://aws.amazon.com/blogs/database/multi-tenant-data-isolation-with-postgresql-row-level-security/
 -- TODO pool partitionaing
 
+--/ if necessary: sudo apt-get install postgresql-contrib
+CREATE EXTENSION pg_trgm;
+
 --/
 create table tickers (
     id serial primary key,
@@ -35,7 +38,7 @@ create table assets (
 create table asset_ops (
     id serial PRIMARY KEY,
     asset_id bigint not null references assets on DELETE CASCADE,
-    kind varchar not null check(kind in ('BUY', 'SELL')),
+    kind varchar not null check(kind in ('BUY', 'SELL', 'SPLIT')),
     amount numeric not null,
     price numeric not null,
     currency varchar not null,
@@ -222,9 +225,13 @@ DECLARE
   rows_affected integer;
 BEGIN
   update assets asset 
-  set cost = sop.price_sum
+    set cost = sop.price_sum,
+    set amount = sop.amount_sum
   from (
-    select op.asset_id, sum(op.price) as price_sum
+    select 
+      op.asset_id, 
+      sum(op.price) as price_sum, 
+      sum(op.amount) as amount_sum
     from asset_ops op
     where op.simulation is false
     group by op.asset_id
