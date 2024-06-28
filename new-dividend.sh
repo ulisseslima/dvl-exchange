@@ -38,6 +38,7 @@ asset_currency=$($query "select currency from assets where id = $asset_id")
 
 rate=1
 if [[ "$asset_currency" == USD ]]; then
+  # TODO use PTAX último dia útil da primeira quinzena do mês anterior ao recebimento
   rate=$($MYDIR/scoop-rate.sh USD -x BRL --date "$created" | jq -r .rates.BRL)
   require rate
 fi

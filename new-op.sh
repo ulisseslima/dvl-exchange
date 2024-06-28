@@ -98,6 +98,7 @@ fi
 
 rate=1
 if [[ "$currency" == USD ]]; then
+  # TODO use PTAX último dia útil da primeira quinzena do mês anterior ao recebimento
   rate=$($MYDIR/scoop-rate.sh USD -x BRL --date "$created" | jq -r .rates.BRL)
   require rate
 fi
