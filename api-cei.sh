@@ -26,8 +26,11 @@ function do_request() {
 	request="$URL/$endpoint?$params"
 	debug "$curl_opts -X $method $request"
 
-	local request_cache="$CACHE/$1-$2-$3.request.json"
-	debug "curl $curl_opts -X $method '$request' -H 'Authorization: Bearer $auth_header'"
+	request_cache="$CACHE/$method-$endpoint-$params.request.json"
+	local req_debug="curl $curl_opts -X $method '$request' -H 'Authorization: Bearer $auth_header'"
+	debug "($request_cache) - $req_debug"
+	echo "$req_debug" > $request_cache
+
 	curl $curl_opts -X $method "$request"\
 		-H "Authorization: Bearer $auth_header"
 }
@@ -38,7 +41,7 @@ mkdir -p $(dirname "$out")
 last_response=$(last_response_minutes "$out")
 if [[ "$last_response" -lt $API_REQUESTS_INTERVAL && -s "$out" ]]; then
 	debug "last response to $endpoint was $last_response minutes ago. interval is $API_REQUESTS_INTERVAL minutes. returning cached response."
-	debug "cached response file: $out"
+	info "cached response file: $out"
 
 	# TODO return last response only if GET method. if POST, return error.
 	cat "$out"
@@ -49,9 +52,14 @@ fi
 
 response=$(do_request "$@")
 if [[ "$response" == *"Authorization Required"* || "$response" == *"Sem autorizacao para consumir a API"* ]]; then
-    info "not caching error response"
-	>&2 echo "$response"
+	error=true
+	err "no auth"
 	response=not-authorized
+elif [[ "$response" == *"Bad Request"* ]]; then
+	error=true
+	err "bad request"
+	cat "$request_cache"
+	response=bad-request
 else
 	echo "$response" > "$out"
 	debug "response cached to $out"
