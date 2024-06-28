@@ -94,7 +94,11 @@ function cei_api_query_key() {
 }
 
 function cei_api_auth_header() {
-    echo "$CEI_KEY_BEARER"
+    if [[ "$CEI_KEY_BEARER" == "Bearer"* ]]; then
+        echo "$CEI_KEY_BEARER" | cut -d' ' -f2
+    else
+        echo "$CEI_KEY_BEARER"
+    fi
 }
 
 ##
