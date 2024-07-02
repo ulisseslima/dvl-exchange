@@ -191,8 +191,8 @@ let itens = JSON.parse(json).itens
 						and created between $3 and $4
 					`, [ticker.id, movimentacao.quantidade, startDate, item.data])
 
-					if (loan?.rows[0]?.count > 0) {
-						console.log(`	└ skipping loan #${loan.rows[0].id}`)
+					if (loan?.rows[0]?.id) {
+						console.log(`	└ skipping because of matching loan op #${loan.rows[0].id}`)
 						continue
 					} else {
 						console.log(`	└ no matching loan found`)

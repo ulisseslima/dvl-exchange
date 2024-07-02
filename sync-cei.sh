@@ -1,6 +1,6 @@
 #!/bin/bash -e
 # @installable
-# snapshot from todays' tickers
+# snapshot from today's tickers
 MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
@@ -63,6 +63,6 @@ node $MYDIR/process-sync-cei.js "$response"
 debug "node: $?/$!"
 
 info "done"
-echo "$response" | jq
+# echo "$response" | jq
 
 # TODO sync br-indexes from last inserted date to now
