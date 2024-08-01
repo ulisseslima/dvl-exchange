@@ -89,7 +89,9 @@ do
           m=$1
           [[ -z "$m" ]] && m=$(now.sh -m)
 
-          [[ $this_month -ge $m ]] && year=$kotoshi || year=$(($kotoshi-1))
+          this_month_int=$(op.sh "${this_month}::int")
+          month_int=$(op.sh "${m}::int")
+          [[ $this_month_int -ge $month_int ]] && year=$kotoshi || year=$(($kotoshi-1))
 
           start="'$year-$m-01'::timestamp"
           end="('$year-$m-01'::timestamp + interval '1 month')"
