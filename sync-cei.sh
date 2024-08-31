@@ -26,15 +26,15 @@ do
       start="${1}"
     ;;
     --end)
-      shift 
+      shift
       end="$1"
     ;;
-    -*) 
+    -*)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;
   esac
-  
+
   shift
 done
 
@@ -52,7 +52,7 @@ fi
 
 if [[ "$response" == not-authorized ]]; then
     err "logged out. you need to update key info in $LOCAL_ENV - https://www.investidor.b3.com.br/"
-    
+
     # prompt_conf CEI_KEY_GUID "CEI cache-guid"
     prompt_conf CEI_KEY_BEARER "CEI Auth Bearer"
 

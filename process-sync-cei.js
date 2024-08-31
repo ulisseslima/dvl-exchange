@@ -82,7 +82,7 @@ let itens = JSON.parse(json).itens
 			let tickerName = movimentacao.nomeProduto.split(" ")[0]
 			console.log(`	# ${movimentacao.instituicao}`)
 			console.log(`	${movimentacao.tipoMovimentacao} - ${tickerName}: ${movimentacao.quantidade} * ${movimentacao.precoUnitario} = ${movimentacao.valorOperacao}`)
-			if (!movimentacao.valorOperacao) {
+			if (!movimentacao.valorOperacao && !movimentacao.quantidade) {
 				// https://stackoverflow.com/questions/9781218/how-to-change-node-jss-console-font-color
 				console.log(`${FgYellow}%s${Reset}`, `	└ sync item ignored. no value.`);
 				continue
@@ -94,7 +94,6 @@ let itens = JSON.parse(json).itens
 				console.log(`	└ ${BgMagenta}${FgWhite}!!! ticker not registered:${Reset} ${tickerName}`)
 			}
 
-			// TODO Grupamento. vem apenas o item 'quantidade'. ver se é a quantidade nova, ou o número da divisão
 			let matches = null
 			let tipoMovimentacao = movimentacao.tipoMovimentacao || 'n/a'
 			if (tipoMovimentacao == "Empréstimo") {
@@ -163,6 +162,10 @@ let itens = JSON.parse(json).itens
 					break
 				} case 'Transferência - Liquidação': {
 					console.log(`	* processing op >`)
+					if (!movimentacao.valorOperacao) {
+						console.log("	└ ignoring. no value.")
+						continue
+					}
 
 					let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
 					let asset = assets.rows[0]
@@ -211,35 +214,39 @@ let itens = JSON.parse(json).itens
 					console.log(`	└- asset updated`)
 
 					break
-				} case 'Grupamento': case 'Desdobro': {
-					console.log(`	* processing split >`)
+				} case 'Desdobro': {
+					console.log(`	* processing split for ticker #${ticker.id} >`)
+					// desdobro: the amount represents the difference. current+quantidade=new amount
+					let new_amount = (amount+(movimentacao.quantidade))
 
 					let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
 					let asset = assets.rows[0]
 
-					amount = await client.query(`
+					let amount_query = await client.query(`
 						select amount from assets
 						where id = $1
 					`, [asset.id])
+					let amount = amount_query.rows[0].amount
 
-					if (amount == (amount+(movimentacao.quantidade))) {
+					if (amount == new_amount) {
 						console.log("	└ split already saved")
 						continue
 					}
 
+					console.log(`current amount: ${amount}`)
 					await client.query(
 						`update assets set amount=$1 where id=$2`,
-						[(amount+(movimentacao.quantidade)), asset.id]
+						[new_amount, asset.id]
 					)
-					console.log(`	└- split updated`)
+					console.log(`	└- split applied`)
 
 					await client.query(`
 						insert into splits 
 						(asset_id, ticker_id, old_amount, new_amount, reverse) 
 						values ($1, $2, $3, $4, $5)
-					`, [asset.id, ticker.id, amount, (amount+(movimentacao.quantidade)), ((amount+(movimentacao.quantidade))<amount)]
+					`, [asset.id, ticker.id, amount, new_amount, (new_amount<amount)]
 					)
-					console.log(`	└- ${BgCyan}${FgBlue}split registered from ${amount} to ${movimentacao.quantidade}${Reset}`)
+					console.log(`	└- ${BgCyan}${FgBlue}split registered from ${amount} + ${movimentacao.quantidade} to ${new_amount}${Reset}`)
 
 					await client.query(`
 						insert into asset_ops 
@@ -247,6 +254,49 @@ let itens = JSON.parse(json).itens
 						values 
 						($1,   'SPLIT',$2,    0,    'BRL',   false);
 					`, [asset.id, movimentacao.quantidade]
+					)
+			
+					break
+				} case 'Grupamento': {
+					console.log(`	* processing reverse split for ticker #${ticker.id} >`)
+					// grupamento: only the new amount (movimentacao.quantidade) is provided in this event
+					let new_amount = movimentacao.quantidade
+
+					let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
+					let asset = assets.rows[0]
+
+					let amount_query = await client.query(`
+						select amount from assets
+						where id = $1
+					`, [asset.id])
+					let amount = amount_query.rows[0].amount
+
+					if (amount == new_amount) {
+						console.log("	└ reverse split already saved")
+						continue
+					}
+
+					console.log(`current amount: ${amount}`)
+					await client.query(
+						`update assets set amount=$1 where id=$2`,
+						[new_amount, asset.id]
+					)
+					console.log(`	└- reverse split applied`)
+
+					await client.query(`
+						insert into splits 
+						(asset_id, ticker_id, old_amount, new_amount, reverse) 
+						values ($1, $2, $3, $4, $5)
+					`, [asset.id, ticker.id, amount, new_amount, (new_amount<amount)]
+					)
+					console.log(`	└- ${BgCyan}${FgRed}reverse split registered from ${amount} to ${new_amount}${Reset}`)
+
+					await client.query(`
+						insert into asset_ops 
+						(asset_id,kind,amount,price,currency,simulation) 
+						values 
+						($1,   'SPLIT',$2,    0,    'BRL',   false);
+					`, [asset.id, -(amount-new_amount)]
 					)
 			
 					break
