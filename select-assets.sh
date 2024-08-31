@@ -58,7 +58,6 @@ done
 
 info "ops since '$($query "select $filter")'"
 $query "select
-  ticker.id ticker_id,
   ticker.name,
   asset.*
 from assets asset

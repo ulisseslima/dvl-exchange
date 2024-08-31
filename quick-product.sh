@@ -62,6 +62,10 @@ do
       shift
       product_brand="$1"
     ;;
+    --name)
+      shift
+      product_name="$1"
+    ;;
     -*)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
@@ -75,8 +79,11 @@ require created "[-d] date of purchase"
 
 match=$($psql "select similar('$product')")
 
-product_id=$(echo "$match" | cut -d'#' -f1)
-product_name=$(echo "$match" | cut -d'#' -f2)
+if [[ -z "$product_name" ]]; then
+  product_id=$(echo "$match" | cut -d'#' -f1)
+  product_name=$(echo "$match" | cut -d'#' -f2)
+fi
+
 if [[ -z "$product_brand" ]]; then
   product_brand=$(echo "$match" | cut -d'#' -f3)
 fi

@@ -144,6 +144,7 @@ else
 fi
 
 $query "select ${extra_cols}
+  max(store.category) category,
   substring(max(store.name), 0, $max_width) store,
   product.id,
   substring(product.name, 0, $max_width) product,
@@ -168,7 +169,8 @@ if [[ -z "$category_filter" ]]; then
     $query "select 
       store.category,
       round(sum(op.price), 2) as total_spent,
-      round(sum(op.amount), 2) as total_amount
+      round(sum(op.amount), 2) as total_amount,
+      (array_agg(product.name))[1:2] examples
     from product_ops op
     join products product on product.id=op.product_id
     join stores store on store.id=op.store_id
