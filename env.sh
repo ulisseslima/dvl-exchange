@@ -33,7 +33,7 @@ CACHE=/tmp/$REPO_NAME
 mkdir -p $CACHE
 
 CSCOOPER_URL='https://api.currencyscoop.com'
-API_CEI_URL='https://investidor.b3.com.br/api'
+API_CEI_URL='https://investidor.b3.com.br/negocio-movimentacao/api'
 
 DB_NAME=$INSTALL_PREFIX
 DB_USER=postgres

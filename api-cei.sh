@@ -60,6 +60,11 @@ elif [[ "$response" == *"Bad Request"* ]]; then
 	err "bad request"
 	cat "$request_cache"
 	response=bad-request
+elif [[ "$response" == *"Error 404"* ]]; then
+	error=true
+	err "page not found: $request"
+	cat "$request_cache"
+	response=page-not-found
 else
 	echo "$response" > "$out"
 	debug "response cached to $out"
