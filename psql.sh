@@ -19,6 +19,7 @@ ops='qAtX'
 separator="|"
 
 if [[ $# -lt 1 ]]; then
+    echo "$connection"
     $connection
 fi
 
