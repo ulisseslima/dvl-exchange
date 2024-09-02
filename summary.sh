@@ -10,7 +10,7 @@ source $MYDIR/env.sh
 source $MYDIR/log.sh
 source $(real require.sh)
 
-query=$MYDIR/psql.sh
+psql=$MYDIR/psql.sh
 
 simulation=false
 today="now()::date"
@@ -58,7 +58,7 @@ do
 done
 
 # info "$fname's snapshot, ordered by cheapest average price:"
-# $query "select
+# $psql "select
 #   asset.id||'/'||ticker.id asset_ticker,
 #   ticker.name,
 #   asset.amount,
@@ -116,7 +116,7 @@ group by
 )"
 
 info "total investment cost/value:"
-$query "$WITH_AGGREGATED_INFO
+$psql "$WITH_AGGREGATED_INFO
 select 
   currency,
   sum(cost) as cost,
@@ -125,8 +125,18 @@ from groups g
 group by g.currency
 " --full
 
-info "total:"
-$query "$WITH_AGGREGATED_INFO
+info -n "aggregate diff/% increase:"
+$psql "$WITH_AGGREGATED_INFO
+select 
+  currency as \"$\",
+  round(sum(value)-sum(cost), 2) as diff, 
+  round(((sum(value)-sum(cost))*100/sum(value)), 2) as \"%\"
+from groups g
+group by currency
+" --full
+
+info -n "equity total:"
+total=$($psql "$WITH_AGGREGATED_INFO
   select round(
     sum(
       case 
@@ -135,14 +145,19 @@ $query "$WITH_AGGREGATED_INFO
       end
     ), 2) as total
   from groups g
+")
+echo $total
+
+info -n "grand total (equity+fixed income):"
+query="select 'cost' as type, sum(amount) 
+  from fixed_income
+  union
+  select 'dividends' as type, sum(total) 
+  from earnings
+  where source = 'fixed-income'
 "
 
-info "aggregate diff/% increase:"
-$query "$WITH_AGGREGATED_INFO
-select 
-  currency as \"$\",
-  round(sum(value)-sum(cost), 2) as diff, 
-  round(((sum(value)-sum(cost))*100/sum(value)), 2) as \"%\"
-from groups g
-group by currency
-" --full
+agg=$($psql "$query")
+cost=$(echo "$agg" | head -1 | cut -d'|' -f2)
+divs=$(echo "$agg" | tail -1 | cut -d'|' -f2)
+echo "$(op.sh "${total}+(${cost}+${divs})")"

@@ -133,7 +133,8 @@ create table earnings (
     amount numeric not null,
     total numeric not null,
     currency varchar not null,
-    rate numeric default 1
+    rate numeric default 1,
+    source varchar
 );
 
 create table index_snapshots (
@@ -153,6 +154,15 @@ create table splits (
     reverse boolean not null,
     old_amount numeric not null,
     new_amount numeric not null
+);
+
+create table fixed_income (
+    id serial PRIMARY KEY,
+    created timestamp default now(),
+    currency varchar not null,
+    institution varchar,
+    amount numeric not null,
+    rate numeric not null default 1
 );
 
 -- region specific: BR

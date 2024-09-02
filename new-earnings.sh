@@ -53,6 +53,9 @@ do
     --full-time)
       amount=160
     ;;
+    --fixed-income)
+      source=fixed-income
+    ;;
     --fraction)
       shift
       fraction=$1
@@ -101,8 +104,8 @@ if [[ -z "$value" ]]; then
 fi
 info "'$institution_id', '$created', $value, $amount, $total, '$currency', $rate"
 
-id=$($query "insert into earnings (institution_id, created, value, amount, total, currency, rate)
-  select '$institution_id', '$created', $value, $amount, $total, '$currency', $rate
+id=$($query "insert into earnings (institution_id, created, value, amount, total, currency, rate, source)
+  select '$institution_id', '$created', $value, $amount, $total, '$currency', $rate, '$source'
   returning id
 ")
 
