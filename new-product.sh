@@ -27,12 +27,14 @@ tags=null
 hide=false
 simulation=false
 extra="'{}'"
+background=false
+schedule=true
 
 while test $# -gt 0
 do
   case "$1" in
     --date|-d|--created)
-      shift 
+      shift
       created="$1"
       if [[ "$created" != *':'* ]]; then
         created="$created $(now.sh -t)"
@@ -64,7 +66,17 @@ do
     --simulation|--sim)
       simulation=true
     ;;
-    -*) 
+    --background)
+      background=true
+    ;;
+    --recurring)
+      shift
+      recurring=$1
+    ;;
+    --no-scheduler)
+      schedule=false
+    ;;
+    -*)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;
@@ -74,7 +86,6 @@ do
 done
 
 [[ -z "$created" ]] && created="$(now.sh -dt)"
-[[ -z "$currency" ]] && currency=$DEFAULT_CURRENCY
 
 if [[ -n "$expression" ]]; then
   price="${price} ${expression}"
@@ -111,7 +122,9 @@ if [[ -z "$product_id" ]]; then
   product_id=$($query "insert into products (name, brand, tags, extra) values ('$product_name', '$product_brand', $tags, $extra) returning id")
   echo "#$product_id"
 else
-  original_product=$($query "select name from products where id = $product_id")
+  original_product=$($query "select name, recurring from products where id = $product_id")
+  recurring=$(echo "$original_product" | cut -d'|' -f2)
+
   info "updating product #$product_id: $original_product ($product_brand)"
   $query "update products set tags=tags || $tags, extra=extra || $extra where id = $product_id"
 fi
@@ -125,10 +138,32 @@ if [[ $amount == 0 ]]; then
   info "using last amount: $amount"
 fi
 
+if [[ -z "$currency" ]]; then
+  currency=$($query "select currency from product_ops where product_id = $product_id order by id desc limit 1")
+  if [[ -z "$currency" ]]; then
+    info "defaulting to $DEFAULT_CURRENCY for $product_name"
+    currency=$DEFAULT_CURRENCY
+  fi
+  info "using last currency: $currency"
+fi
+
 id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created, hidden, simulation)
   select $store_id, $product_id, $amount, $price, '$currency', '$created', $hide, $simulation
   returning id
 ")
+
+if [[ $schedule == true && $(nan.sh "$recurring") == false ]]; then
+  info "scheduling new $product_name op for $recurring months in the future..."
+  echo "$MYSELF \"$store_name\" \"$product_name\" \"$product_brand\" \"$amount\" \"$price\" -d \"$(op.sh "'${created}'::date+interval '$recurring months'")\""\
+   | at $(op.sh "'${created}'::date") + $recurring months
+  
+  [[ $background == false ]] && atq
+fi
+
+if [[ "$background" == true ]]; then
+  notify.sh "background execution #${id}: $product_name ($product_brand) - $price"
+  return 0
+fi
 
 if [[ -n "$id" ]]; then
   info "new product op: $id"
@@ -136,6 +171,6 @@ if [[ -n "$id" ]]; then
   info "total cost:"
   $query "select sum(price) from product_ops where product_id = $product_id"
 
-  $MYDIR/product-summary.sh "$product_name"
+  $MYDIR/product-summary.sh "$product_name" -b "$product_brand"
 fi
 

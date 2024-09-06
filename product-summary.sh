@@ -91,7 +91,9 @@ done
 
 info "$store - $product_name [$brand] - latest buys:"
 $query "select 
-  op.id op, store.name store, product.name product, product.brand, 
+  op.id op, store.name store, 
+  store.id||'#'||product.id sid_pid, 
+  product.name product, product.brand, 
   amount, price, op.currency cur, 
   op.created,
   round((1 * price / amount), 2) as unit
