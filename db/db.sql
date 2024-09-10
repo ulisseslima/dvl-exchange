@@ -159,7 +159,7 @@ create table splits (
 create table fixed_income (
     id serial PRIMARY KEY,
     created timestamp default now(),
-    currency varchar not null,
+    currency varchar not null default 'BRL',
     institution varchar,
     amount numeric not null,
     rate numeric not null default 1

@@ -154,8 +154,11 @@ id=$($query "insert into product_ops (store_id, product_id, amount, price, curre
 
 if [[ $schedule == true && $(nan.sh "$recurring") == false ]]; then
   info "scheduling new $product_name op for $recurring months in the future..."
-  echo "$MYSELF \"$store_name\" \"$product_name\" \"$product_brand\" \"$amount\" \"$price\" -d \"$(op.sh "'${created}'::date+interval '$recurring months'")\""\
-   | at $(op.sh "'${created}'::date") + $recurring months
+  next_recurrence=$(op.sh "('${created}'::date+interval '$recurring months')::date")
+  >&2 echo "$next_recurrence"
+
+  echo "$MYSELF '$store_name' '$product_name' '$product_brand' $amount $price -d $next_recurrence --background"\
+   | at $next_recurrence
   
   [[ $background == false ]] && atq
 fi

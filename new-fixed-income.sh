@@ -14,7 +14,7 @@ query=$MYDIR/psql.sh
 
 if [[ $# -lt 1 ]]; then
   echo "e.g.:"
-  echo "$(sh_name $ME) SANTANDER 677.60 BRL --date '2020-12-02'"
+  echo "$(sh_name $ME) SANTANDER 500.00 --date '2020-01-05'"
   echo "date defaults to now if not specified"
   exit 0
 fi
@@ -22,8 +22,6 @@ fi
 institution="${1^^}"; require institution
 shift
 amount="$1";          require -nx amount
-shift
-currency="${1^^}";    require currency
 shift
 
 while test $# -gt 0
@@ -36,6 +34,10 @@ do
         created="$created $(now.sh -t)"
       fi
     ;;
+    --recurring)
+      shift
+      recurring="$1"
+    ;;
     -*) 
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
@@ -47,19 +49,21 @@ done
 
 [[ -z "$created" ]] && created="$(now.sh -dt)"
 
-rate=1
-if [[ "$currency" == USD ]]; then
-  # TODO use PTAX último dia útil da primeira quinzena do mês anterior ao recebimento
-  rate=$($MYDIR/scoop-rate.sh USD -x BRL --date "$created" | jq -r .rates.BRL)
-  require rate
-fi
-
-id=$($query "insert into fixed_income (created, currency, institution, amount, rate)
-  select '$created', '$currency', '$institution', $amount, $rate
+id=$($query "insert into fixed_income (created, institution, amount)
+  select '$created', '$institution', $amount
   returning id
 ")
 
 if [[ -n "$id" ]]; then
   info "success: $id"
   $MYDIR/select-fixed-income.sh
+fi
+
+if [[ $(nan.sh "$recurring") == false ]]; then
+  info "scheduling new fixed-income op for $recurring months in the future:"
+  next_recurrence=$(op.sh "('${created}'::date+interval '$recurring months')::date")
+  >&2 echo "$next_recurrence"
+
+  echo "$MYSELF '$institution' $amount -d $next_recurrence --recurring $recurring"\
+   | at $next_recurrence
 fi
