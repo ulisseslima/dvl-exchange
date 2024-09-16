@@ -30,7 +30,7 @@ function outdated_tickers() {
         group by ticker.name
         having max(snapshot.created) < '$filter'
     order by tick
-    limit 10
+    limit 20
     ;" | tr '\n' ','
 }
 

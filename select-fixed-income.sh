@@ -93,6 +93,10 @@ do
         shift
         and="$and and op.currency='${1^^}'"
     ;;
+    --from|--institution|-i)
+        shift
+        and="$and and op.institution='${1^^}'"
+    ;;
     --group-by|-g)
         shift
         grouping="$1"

@@ -53,13 +53,14 @@ api=$MYDIR/api-bcb.sh
 today="now()::date"
 this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
+day_one_otm="${kotoshi}-${this_month}-01"
 
 # taxa referencial (poupança)
 TR=7811
 CDI=4391
 IGPM=189
 IPCA=433
-SELIC=
+SELIC=4390
 
 index=${1^^}
 require index "arg1: index name"
@@ -118,13 +119,14 @@ do
       shift
       n=$1
 
-      if [[ "$2" != "-"* ]]; then
+      if [[ -n "$2" && "$2" != "-"* ]]; then
           shift
-          today="'$1'::date"
-          info "considering start date as: $today"
+          start="'$1'::date"
+          info "considering start date as: $start"
       fi
 
-      start="($today - interval '$n months')"
+      start="('$day_one_otm'::date - interval '$n months')"
+      end="('$day_one_otm'::date)"
     ;;
     -*)
       echo "$(sh_name $ME) - bad option '$1'"
@@ -157,6 +159,10 @@ do
     accumulated_price=$(op $accumulated_price+$price)
   else
     accumulated_price=$price
+    $query "insert into index_snapshots (index_id, index_name, created, price, currency)
+      SELECT $index_id, '$index', to_date('$date', 'DD/MM/YYYY'), $price, 'BRL'
+      WHERE NOT EXISTS (select * from index_snapshots where index_name = '$index' and created = to_date('$date', 'DD/MM/YYYY'))
+    "
     break
   fi
 
