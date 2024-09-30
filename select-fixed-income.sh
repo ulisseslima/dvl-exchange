@@ -24,6 +24,7 @@ today="now()::date"
 this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
 simulation=false
+earnings=true
 
 while test $# -gt 0
 do
@@ -95,7 +96,8 @@ do
     ;;
     --from|--institution|-i)
         shift
-        and="$and and op.institution='${1^^}'"
+        institution="${1^^}"
+        and="$and and op.institution='${institution}'"
     ;;
     --group-by|-g)
         shift
@@ -103,6 +105,10 @@ do
     ;;
     --total-only)
         total_only=true
+    ;;
+    --earnings)
+        shift
+        earnings=$1
     ;;
     -*)
         echo "$(sh_name $ME) - bad option '$1'"
@@ -127,13 +133,25 @@ $psql "$query" --full
 debug "$query"
 
 info -n  "aggregated (all-time):"
-query="select 'cost' as type, sum(amount) 
-  from fixed_income
-  union
-  select 'dividends' as type, sum(total) 
-  from earnings
-  where source = 'fixed-income'
-"
+if [[ -n "$institution" ]]; then
+    query="select 'cost' as type, sum(amount), max(institution) as institution
+    from fixed_income
+    where institution ilike '${institution}%'
+    union
+    select 'dividends' as type, sum(total), max(institution_id)
+    from earnings
+    where source = 'fixed-income'
+    and institution_id ilike '${institution}%'
+    "
+else
+    query="select 'cost' as type, sum(amount) 
+    from fixed_income
+    union
+    select 'dividends' as type, sum(total) 
+    from earnings
+    where source = 'fixed-income'
+    "
+fi
 
 $psql "$query" --full
 debug "$query"
