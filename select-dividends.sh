@@ -137,13 +137,14 @@ do
     ;;
     -*)
         echo "$(sh_name $ME) - bad option '$1'"
+        exit 1
     ;;
     esac
     shift
 done
 
 interval="$start and $end"
-info "dividends between $($psql "select $start") and $($psql "select $end")"
+info "dividends between $($psql "select $start") and $($psql "select $end"), grouping by $group_by"
 
 filters="$and and $ticker"
 
@@ -233,7 +234,7 @@ else
             if [[ -n "$USD" ]]; then
                 BRL=$(echo "${avg_dividends}" | grep BRL | cut -d'|' -f1)
                 ALL_TO_BRL=$(op "$BRL+($USD*$rate)")
-                echo "=$ALL_TO_BRL BRL"
+                echo "=$ALL_TO_BRL BRL ($USD USD*$rate)"
             fi
         fi
     fi
