@@ -66,7 +66,7 @@ do
     --simulation|--sim)
       simulation=true
     ;;
-    --background)
+    --background|--bg)
       background=true
     ;;
     --recurring)
