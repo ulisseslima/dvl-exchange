@@ -47,7 +47,7 @@ const dateWithoutTz = (dateString, offset) => {
 	return `${year}-${month}-${day}T00:00:00`
 };
 
-let json = undefined
+let json
 console.log("connecting to local db...")
 
 if (process.argv[2]) {
@@ -90,8 +90,9 @@ let itens = JSON.parse(json).itens
 			
 			let results = await client.query(`select id from tickers where name ilike $1 limit 1`, [tickerName+"%"])
 			let ticker = results.rows[0]
-			if (!ticker || !ticker.id) {
+			if (!ticker?.id) {
 				console.log(`	└ ${BgMagenta}${FgWhite}!!! ticker not registered:${Reset} ${tickerName}`)
+				continue
 			}
 
 			let matches = null
