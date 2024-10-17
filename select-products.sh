@@ -144,6 +144,7 @@ else
 fi
 
 $query "select ${extra_cols}
+  max(op.created) last,
   max(store.category) category,
   substring(max(store.name), 0, $max_width) store,
   product.id,
@@ -167,6 +168,7 @@ order by $main_ordering
 if [[ -z "$category_filter" ]]; then
     info -n "total spending of products between $($query "select $start") and $($query "select $end") by category"
     $query "select 
+      max(op.created) last,
       store.category,
       round(sum(op.price), 2) as total_spent,
       round(sum(op.amount), 2) as total_amount,
