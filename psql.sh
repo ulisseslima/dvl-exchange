@@ -38,6 +38,9 @@ fi
 if [[ "$query" == --connection ]]; then
     echo "$connection"
     exit 0
+elif [[ "$query" == --url ]]; then
+    echo "postgresql://$DB_USER@localhost/$DB_NAME"
+    exit 0
 fi
 
 while test $# -gt 0
