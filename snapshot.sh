@@ -63,4 +63,5 @@ while [[ -n "$tickers" ]]; do
 done
 
 info "done"
+notify.sh "snapshots updated"
 $MYDIR/cheapest.sh
