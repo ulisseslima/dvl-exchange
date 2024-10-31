@@ -103,7 +103,7 @@ do
       accumulate=false
     ;;
     --year|-y)
-        if [[ "$2" != "-"* ]]; then
+        if [[ -n "$2" && "$2" != "-"* ]]; then
             shift
             y=$1
             [[ -z "$y" ]] && y=$(now.sh -y)
