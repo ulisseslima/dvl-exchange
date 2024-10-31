@@ -354,4 +354,28 @@ BEGIN
   ;
 END;
 $f$ LANGUAGE plpgsql;
+--/ ⬛ ⚪ ৽ ܁ ᛫ • ⸭ ፨ 𑗐 𑗏
+CREATE OR REPLACE FUNCTION plot(value numeric, resolution int, from_range1 numeric, from_range2 numeric)
+RETURNS text AS $f$
+DECLARE
+    repeat_pattern text := '᛫';
+    replacement text := '፨';
+    pattern text;
+    result text;
+    linear_transform int;
+    to_range1 int := 1;
+    to_range2 int := resolution;
+BEGIN
+    linear_transform := ((value - from_range1) / (from_range2 - from_range1) * (to_range2 - to_range1) + to_range1)::int;
+
+    -- Step 1: Generate the repeated pattern (equivalent to printf and tr)
+    pattern := repeat(repeat_pattern, resolution);
+    
+    -- Step 2: Replace a specific character in the pattern at the given index (equivalent to sed)
+    result := overlay(pattern placing replacement from linear_transform for 1);
+
+    -- Return the final result
+    RETURN result;
+END;
+$f$ LANGUAGE plpgsql;
 --/
