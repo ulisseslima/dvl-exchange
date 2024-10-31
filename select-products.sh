@@ -39,6 +39,11 @@ do
         shift
         and="$1"
     ;;
+    --like)
+        shift
+        name="${1^^}"
+        and="$and and similarity(store.name||' '||product.name||' '||brand, '${name}') > 0.15"
+    ;;
     --name|-p)
         shift
         name="${1^^}"
@@ -89,7 +94,7 @@ do
         fi
     ;;
     --year|-y)
-        if [[ "$2" != "-"* ]]; then
+        if [[ -n "$2" && "$2" != "-"* ]]; then
             shift
             y=$1
             start="'$y-01-01'"
