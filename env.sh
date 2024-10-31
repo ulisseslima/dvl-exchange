@@ -198,3 +198,39 @@ function prompt_conf() {
 function sh_name() {
     echo "$INSTALL_PREFIX-${1/.sh/}"
 }
+
+function plot() {
+    resolution=$1; shift
+    value=$1; shift
+
+    pattern='.'
+    plot=O
+    
+    to_range1=1
+    to_range2=$resolution
+
+    while test $# -gt 0
+    do
+        case "$1" in
+        --from-range)
+            shift
+            from_range1=$1
+
+            shift
+            from_range2=$1
+        ;;
+        --pattern)
+            shift
+            pattern="$1"
+        ;;
+        -*)
+            echo "$(sh_name $ME) - bad option '$1'"
+            exit 1
+        ;;
+        esac
+        shift
+    done
+    
+    linear_transform=$(op.sh "(($value - $from_range1) / ($from_range2 - $from_range1) * ($to_range2 - $to_range1) + $to_range1)::int")
+    printf %${resolution}s | tr " " "$pattern" | sed s/./$plot/$linear_transform
+}

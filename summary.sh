@@ -33,7 +33,7 @@ do
         fname=month
       ;;
       --year)
-        if [[ "$2" != "-"* ]]; then
+        if [[ -n "$2" && "$2" != "-"* ]]; then
           shift
           y=$1
           interval="'$y-01-01' and ('$y-01-01'::timestamp + interval '1 year')"
