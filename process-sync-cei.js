@@ -95,214 +95,28 @@ let itens = JSON.parse(json).itens
 				continue
 			}
 
-			let matches = null
 			let tipoMovimentacao = movimentacao.tipoMovimentacao || 'n/a'
 			if (tipoMovimentacao == "Empréstimo") {
 				tipoMovimentacao += ' - ' + movimentacao.tipoEmprestimo
 			}
 
-			let tickerId = ticker.id
 			switch (tipoMovimentacao) {
 				case 'Empréstimo - Liquidação': {
-					console.log(`	* processing loan (${tipoMovimentacao}) >`)
-					
-					// Às vezes não tem a quantidade de emprestados. checar na mesma movimentação se tem "quantidade" no 
-					// tipoEmprestimo=Registro e naturezaEmprestimo=Doador, tipoMovimentacao=Emprestimo e nomeProduto=igual o da iteração de agora
-					if (!movimentacao.quantidade) {
-						let results = listaMovimentacao.filter(mov => 
-							mov.tipoEmprestimo === 'Registro' &&
-							mov.naturezaEmprestimo === 'Doador' &&
-							mov.tipoMovimentacao === 'Empréstimo' &&
-							mov.nomeProduto === movimentacao.nomeProduto
-						)
-
-						if (results) movimentacao.quantidade = results[0].quantidade
-					}
-
-					matches = await client.query(`
-						select count(id) from loans 
-						where ticker_id = $1
-						and amount = $2
-						and total = $3
-						and created = $4
-					`, [tickerId, movimentacao.quantidade, movimentacao.valorOperacao, item.data])
-
-					if (matches.rows[0].count > 0) {
-						console.log("	└ loan already saved")
-						continue
-					}
-			
-					await client.query(
-						'insert into loans (ticker_id, created, amount, total, currency) values ($1, $2, $3, $4, $5)', 
-						[tickerId, item.data, movimentacao.quantidade, movimentacao.valorOperacao, "BRL"]
-					)
-					console.log(`	└ ${BgBlue}${FgWhite}loan saved${Reset}`)
+					await processLoan(client, movimentacao, item, ticker, listaMovimentacao)
 					break
 				} case 'Rendimento': {
-					console.log(`	* processing dividends (${tipoMovimentacao}) >`)
-
-					matches = await client.query(`
-						select count(id) from dividends 
-						where ticker_id = $1
-						and value = $2
-						and amount = $3
-						and total = $4
-						and created = $5
-					`, [tickerId, movimentacao.precoUnitario, movimentacao.quantidade, movimentacao.valorOperacao, item.data])
-
-					if (matches.rows[0].count > 0) {
-						console.log("	└ dividend already saved")
-						continue
-					}
-			
-					await client.query(
-						'insert into dividends (ticker_id, created, value, amount, total, currency) values ($1, $2, $3, $4, $5, $6)', 
-						[tickerId, item.data, movimentacao.precoUnitario, movimentacao.quantidade, movimentacao.valorOperacao, "BRL"]
-					)
-					console.log(`	└ dividend saved`)
+					await processDividends(client, movimentacao, item, ticker)
 					break
 				} case 'Transferência - Liquidação': {
-					console.log(`	* processing op >`)
-					if (!movimentacao.valorOperacao) {
-						console.log("	└ ignoring. no value.")
-						continue
-					}
-
-					let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
-					let asset = assets.rows[0]
-
-					matches = await client.query(`
-						select count(id) from asset_ops
-						where asset_id = $1
-						and kind = 'BUY'
-						and price = $2
-						and amount = $3
-						and created = $4
-					`, [asset.id, movimentacao.valorOperacao, movimentacao.quantidade, item.data])
-
-					if (matches.rows[0].count > 0) {
-						console.log("	└ op already saved")
-						continue
-					}
-
-					const startDate = dateWithoutTz(item.data, -3) // 3 business days to process
-
-					console.log(`searching matching loan for:`, {ticker: ticker.id, amount: movimentacao.quantidade, dateA: startDate, dateB: item.data})
-					let loan = await client.query(`
-						select id from loans
-						where ticker_id = $1
-						and amount = $2
-						and created between $3 and $4
-					`, [ticker.id, movimentacao.quantidade, startDate, item.data])
-
-					if (loan?.rows[0]?.id) {
-						console.log(`	└ skipping because of matching loan op #${loan.rows[0].id}`)
-						continue
-					} else {
-						console.log(`	└ no matching loan found`)
-					}
-			
-					await client.query(
-						'insert into asset_ops (asset_id, created, price, amount, currency, institution, kind) values ($1, $2, $3, $4, $5, $6, $7)', 
-						[asset.id, item.data, movimentacao.valorOperacao, movimentacao.quantidade, 'BRL', movimentacao.instituicao, 'BUY']
-					)
-					console.log(`	└ ${BgBlack}${FgWhite}op saved${Reset}`)
-
-					await client.query(
-						`update assets set amount=amount+$1, cost=cost+$2, value=0 where id = $3`,
-						[movimentacao.quantidade, movimentacao.valorOperacao, asset.id]
-					)
-					console.log(`	└- asset updated`)
-
+					await processOp(client, movimentacao, item, ticker)
 					break
 				} case 'Desdobro': {
-					console.log(`	* processing split for ticker #${ticker.id} >`)
-					// desdobro: the amount represents the difference. current+quantidade=new amount
-					let new_amount = (amount+(movimentacao.quantidade))
-
-					let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
-					let asset = assets.rows[0]
-
-					let amount_query = await client.query(`
-						select amount from assets
-						where id = $1
-					`, [asset.id])
-					let amount = amount_query.rows[0].amount
-
-					if (amount == new_amount) {
-						console.log("	└ split already saved")
-						continue
-					}
-
-					console.log(`current amount: ${amount}`)
-					await client.query(
-						`update assets set amount=$1 where id=$2`,
-						[new_amount, asset.id]
-					)
-					console.log(`	└- split applied`)
-
-					await client.query(`
-						insert into splits 
-						(asset_id, ticker_id, old_amount, new_amount, reverse) 
-						values ($1, $2, $3, $4, $5)
-					`, [asset.id, ticker.id, amount, new_amount, (new_amount<amount)]
-					)
-					console.log(`	└- ${BgCyan}${FgBlue}split registered from ${amount} + ${movimentacao.quantidade} to ${new_amount}${Reset}`)
-
-					await client.query(`
-						insert into asset_ops 
-						(asset_id,kind,amount,price,currency,simulation) 
-						values 
-						($1,   'SPLIT',$2,    0,    'BRL',   false);
-					`, [asset.id, movimentacao.quantidade]
-					)
-			
+					await processSplit(client, movimentacao, item, ticker)
 					break
 				} case 'Grupamento': {
-					console.log(`	* processing reverse split for ticker #${ticker.id} >`)
-					// grupamento: only the new amount (movimentacao.quantidade) is provided in this event
-					let new_amount = movimentacao.quantidade
-
-					let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
-					let asset = assets.rows[0]
-
-					let amount_query = await client.query(`
-						select amount from assets
-						where id = $1
-					`, [asset.id])
-					let amount = amount_query.rows[0].amount
-
-					if (amount == new_amount) {
-						console.log("	└ reverse split already saved")
-						continue
-					}
-
-					console.log(`current amount: ${amount}`)
-					await client.query(
-						`update assets set amount=$1 where id=$2`,
-						[new_amount, asset.id]
-					)
-					console.log(`	└- reverse split applied`)
-
-					await client.query(`
-						insert into splits 
-						(asset_id, ticker_id, old_amount, new_amount, reverse) 
-						values ($1, $2, $3, $4, $5)
-					`, [asset.id, ticker.id, amount, new_amount, (new_amount<amount)]
-					)
-					console.log(`	└- ${BgCyan}${FgRed}reverse split registered from ${amount} to ${new_amount}${Reset}`)
-
-					await client.query(`
-						insert into asset_ops 
-						(asset_id,kind,amount,price,currency,simulation) 
-						values 
-						($1,   'SPLIT',$2,    0,    'BRL',   false);
-					`, [asset.id, -(amount-new_amount)]
-					)
-			
+					await processRevSplit(client, movimentacao, item, ticker)
 					break
 				} default: {
-					// console.log(`	└ type ignored: ${tipoMovimentacao}`)
 					console.log(`${BgYellow}${FgBlack}%s${Reset}`, `	└ type ignored: ${tipoMovimentacao}`);
 					break
 				}
@@ -314,3 +128,208 @@ let itens = JSON.parse(json).itens
 	
 	client.release()
 })()
+
+async function processRevSplit(client, movimentacao, item, ticker) {
+	console.log(`	* processing reverse split for ticker #${ticker.id} >`)
+	// grupamento: only the new amount (movimentacao.quantidade) is provided in this event
+	let new_amount = movimentacao.quantidade
+
+	let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
+	let asset = assets.rows[0]
+
+	let amount_query = await client.query(`
+		select amount from assets
+		where id = $1
+	`, [asset.id])
+	let amount = amount_query.rows[0].amount
+
+	if (amount == new_amount) {
+		console.log("	└ reverse split already saved")
+		return
+	}
+
+	console.log(`current amount: ${amount}`)
+	await client.query(
+		`update assets set amount=$1 where id=$2`,
+		[new_amount, asset.id]
+	)
+	console.log(`	└- reverse split applied`)
+
+	await client.query(`
+		insert into splits 
+		(asset_id, ticker_id, old_amount, new_amount, reverse) 
+		values ($1, $2, $3, $4, $5)
+	`, [asset.id, ticker.id, amount, new_amount, (new_amount < amount)]
+	)
+	console.log(`	└- ${BgCyan}${FgRed}reverse split registered from ${amount} to ${new_amount}${Reset}`)
+
+	await client.query(`
+		insert into asset_ops 
+		(asset_id,kind,amount,price,currency,simulation) 
+		values 
+		($1,   'SPLIT',$2,    0,    'BRL',   false);
+	`, [asset.id, -(amount - new_amount)]
+	)
+}
+
+async function processSplit(client, movimentacao, item, ticker) {
+	console.log(`	* processing split for ticker #${ticker.id} >`)
+	// desdobro: the amount represents the difference. current+quantidade=new amount
+	let new_amount = (amount + (movimentacao.quantidade))
+
+	let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
+	let asset = assets.rows[0]
+
+	let amount_query = await client.query(`
+		select amount from assets
+		where id = $1
+	`, [asset.id])
+	let amount = amount_query.rows[0].amount
+
+	if (amount == new_amount) {
+		console.log("	└ split already saved")
+		return
+	}
+
+	console.log(`current amount: ${amount}`)
+	await client.query(
+		`update assets set amount=$1 where id=$2`,
+		[new_amount, asset.id]
+	)
+	console.log(`	└- split applied`)
+
+	await client.query(`
+		insert into splits 
+		(asset_id, ticker_id, old_amount, new_amount, reverse) 
+		values ($1, $2, $3, $4, $5)
+	`, [asset.id, ticker.id, amount, new_amount, (new_amount < amount)]
+	)
+	console.log(`	└- ${BgCyan}${FgBlue}split registered from ${amount} + ${movimentacao.quantidade} to ${new_amount}${Reset}`)
+
+	await client.query(`
+		insert into asset_ops 
+		(asset_id,kind,amount,price,currency,simulation) 
+		values 
+		($1,   'SPLIT',$2,    0,    'BRL',   false);
+	`, [asset.id, movimentacao.quantidade]
+	)
+}
+
+async function processOp(client, movimentacao, item, ticker) {
+	console.log(`	* processing op >`)
+	if (!movimentacao.valorOperacao) {
+		console.log("	└ ignoring. no value.")
+		return
+	}
+
+	let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
+	let asset = assets.rows[0]
+
+	let matches = await client.query(`
+		select count(id) from asset_ops
+		where asset_id = $1
+		and kind = 'BUY'
+		and price = $2
+		and amount = $3
+		and created = $4
+	`, [asset.id, movimentacao.valorOperacao, movimentacao.quantidade, item.data])
+
+	if (matches.rows[0].count > 0) {
+		console.log("	└ op already saved")
+		return
+	}
+
+	const startDate = dateWithoutTz(item.data, -3) // 3 business days to process
+
+	console.log(`searching matching loan for:`, { ticker: ticker.id, amount: movimentacao.quantidade, dateA: startDate, dateB: item.data })
+	let loan = await client.query(`
+		select id from loans
+		where ticker_id = $1
+		and amount = $2
+		and created between $3 and $4
+	`, [ticker.id, movimentacao.quantidade, startDate, item.data])
+
+	if (loan?.rows[0]?.id) {
+		console.log(`	└ skipping because of matching loan op #${loan.rows[0].id}`)
+		return
+	} else {
+		console.log(`	└ no matching loan found`)
+	}
+
+	await client.query(
+		'insert into asset_ops (asset_id, created, price, amount, currency, institution, kind) values ($1, $2, $3, $4, $5, $6, $7)',
+		[asset.id, item.data, movimentacao.valorOperacao, movimentacao.quantidade, 'BRL', movimentacao.instituicao, 'BUY']
+	)
+	console.log(`	└ ${BgBlack}${FgWhite}op saved${Reset}`)
+
+	await client.query(
+		`update assets set amount=amount+$1, cost=cost+$2, value=0 where id = $3`,
+		[movimentacao.quantidade, movimentacao.valorOperacao, asset.id]
+	)
+	console.log(`	└- asset updated`)
+	return matches
+}
+
+async function processDividends(client, movimentacao, item, ticker) {
+	console.log(`	* processing dividends (${movimentacao.tipoMovimentacao}) >`)
+	let tickerId = ticker.id
+
+	let matches = await client.query(`
+		select count(id) from dividends 
+		where ticker_id = $1
+		and value = $2
+		and amount = $3
+		and total = $4
+		and created = $5
+	`, [tickerId, movimentacao.precoUnitario, movimentacao.quantidade, movimentacao.valorOperacao, item.data])
+
+	if (matches.rows[0].count > 0) {
+		console.log("	└ dividend already saved")
+		return
+	}
+
+	await client.query(
+		'insert into dividends (ticker_id, created, value, amount, total, currency) values ($1, $2, $3, $4, $5, $6)',
+		[tickerId, item.data, movimentacao.precoUnitario, movimentacao.quantidade, movimentacao.valorOperacao, "BRL"]
+	)
+	console.log(`	└ dividend saved`)
+	return matches
+}
+
+async function processLoan(client, movimentacao, item, ticker, listaMovimentacao) {
+	console.log(`	* processing loan (${movimentacao.tipoMovimentacao}) >`)
+	let tickerId = ticker.id
+
+	// Às vezes não tem a quantidade de emprestados. checar na mesma movimentação se tem "quantidade" no 
+	// tipoEmprestimo=Registro e naturezaEmprestimo=Doador, tipoMovimentacao=Emprestimo e nomeProduto=igual o da iteração de agora
+	if (!movimentacao.quantidade) {
+		let results = listaMovimentacao.filter(mov => mov.tipoEmprestimo === 'Registro' &&
+			mov.naturezaEmprestimo === 'Doador' &&
+			mov.tipoMovimentacao === 'Empréstimo' &&
+			mov.nomeProduto === movimentacao.nomeProduto
+		)
+
+		if (results) movimentacao.quantidade = results[0].quantidade
+	}
+
+	let matches = await client.query(`
+		select count(id) from loans 
+		where ticker_id = $1
+		and amount = $2
+		and total = $3
+		and created = $4
+	`, [tickerId, movimentacao.quantidade, movimentacao.valorOperacao, item.data])
+
+	if (matches.rows[0].count > 0) {
+		console.log("	└ loan already saved")
+		return
+	}
+
+	await client.query(
+		'insert into loans (ticker_id, created, amount, total, currency) values ($1, $2, $3, $4, $5)',
+		[tickerId, item.data, movimentacao.quantidade, movimentacao.valorOperacao, "BRL"]
+	)
+	console.log(`	└ ${BgBlue}${FgWhite}loan saved${Reset}`)
+	return matches
+}
+
