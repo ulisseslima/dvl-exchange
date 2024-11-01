@@ -28,7 +28,7 @@ while test $# -gt 0
 do
   case "$1" in
     --date|-d|--created)
-      shift 
+      shift
       created="$1"
       if [[ "$created" != *':'* ]]; then
         created="$created $(now.sh -t)"
@@ -38,12 +38,12 @@ do
       shift
       recurring="$1"
     ;;
-    -*) 
+    -*)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;
   esac
-  
+
   shift
 done
 
