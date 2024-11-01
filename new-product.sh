@@ -29,6 +29,7 @@ simulation=false
 extra="'{}'"
 background=false
 schedule=true
+recurring=null
 
 while test $# -gt 0
 do
@@ -119,7 +120,7 @@ fi
 product_id=$($query "select id from products where (name = '${product_name}' or name iLIKE '%${product_name}%') and brand iLIKE '%${product_brand}%' order by name limit 1")
 if [[ -z "$product_id" ]]; then
   info "creating new product: $product_name ($product_brand)"
-  product_id=$($query "insert into products (name, brand, tags, extra) values ('$product_name', '$product_brand', $tags, $extra) returning id")
+  product_id=$($query "insert into products (name, brand, tags, extra, recurring) values ('$product_name', '$product_brand', $tags, $extra, $recurring) returning id")
   echo "#$product_id"
 else
   original_product=$($query "select name, recurring from products where id = $product_id")
