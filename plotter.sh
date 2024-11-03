@@ -41,7 +41,8 @@ do
     require column 'specify plot:column_name'
 
     # real_column=$(echo $query | grep -oP "(?<=,).*(?=\sas\s${column})" | sed 's/^[ \t]*//')
-    real_column=$(echo "$query" | grep " as ${column}" | tr -s " " | cut -d'.' -f1,2)
+    # real_column=$(echo "$query" | grep " as ${column}" | tr -s " " | cut -d'.' -f1,2)
+    real_column=$(echo "$query" | grep " as ${column}" | tr -s " ")
     real_column=$(echo $real_column)
     real_column=$(echo $real_column | cut -d' ' -f1)
 

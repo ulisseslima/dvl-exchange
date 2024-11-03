@@ -10,8 +10,10 @@ source $MYDIR/env.sh
 source $MYDIR/log.sh
 source $(real require.sh)
 
-query=$MYDIR/psql.sh
-full='--full'
+psql=$MYDIR/psql.sh
+
+plot="'plot:cost'"
+show='--full'
 filter="(now()::date - interval '1 month')"
 fname=year
 
@@ -40,7 +42,7 @@ do
       fname="$filter"
     ;;
     --csv)
-      full='--csv'
+      show='--csv'
     ;;
     -*)
       echo "$(sh_name $ME) - bad option '$1'"
@@ -51,8 +53,8 @@ done
 
 info "$fname's snapshot, ordered by cheapest price now (compared to $(dop "${filter}::date")):"
 
-$query "select
-  (select id from assets where ticker_id=ticker.id) asset_id,
+query="select
+  (select id from assets where ticker_id=ticker.id) ass,
   ticker.name,
   max(snap.price)||' ('||
     (round(((max(snap.price)-(select price(ticker.id)))*100/(select price(ticker.id))), 2))
@@ -78,7 +80,8 @@ $query "select
     end)) now,
   last_buy(ticker.id) last_buy,
   avg_buy(ticker.id) avg_buy,
-  max(snap.currency) currency
+  max(snap.currency) currency,
+  ${plot}
 from snapshots snap
 join tickers ticker on ticker.id=snap.ticker_id
 join snapshots latest on latest.id=snap.id
@@ -89,4 +92,6 @@ group by ticker.id
 order by 
   max(snap.currency),
   (select price(ticker.id)-(min(snap.price)))
-" $full
+" 
+
+$psql "$($MYDIR/plotter.sh "$query")" $show

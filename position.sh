@@ -10,8 +10,9 @@ source $MYDIR/env.sh
 source $MYDIR/log.sh
 source $(real require.sh)
 
-query=$MYDIR/psql.sh
+psql=$MYDIR/psql.sh
 
+plot="'plot:cost'"
 summary=false
 simulation=false
 interval="'1900-01-01' and now()"
@@ -75,6 +76,11 @@ do
       shift
       optional_cols="${1},"
     ;;
+    --plot)
+        shift
+        plot="${plot},
+        'plot:$1'"
+    ;;
     --order-by-val)
       order="max(op.currency),
       curr_val desc,
@@ -93,14 +99,15 @@ if [[ -n "$ticker" ]]; then
   info "$ticker"
 fi
 
-$query "select
+query="select
   max(asset.id)||'/'||ticker.id asstck,
   ticker.name ticker,
-  round(sum(op.amount), 2) as n,
+  round(sum(op.amount),2) as n,
   sum(op.price) as cost,
   max(op.currency) as \"$\",
-  round(sum(op.price*op.rate), 2) as BRL,
-  round(price(ticker.id)*sum(op.amount), 2) as curr_val,
+  round(sum(op.price*op.rate),2) as brl,
+  round(price(ticker.id)*sum(op.amount),2) as curr_val,
+  ${plot},
   $optional_cols
   (case 
     when (${percentage_diff} > 0) then '${GREEN}'||${percentage_diff}||'${NC}'
@@ -115,4 +122,6 @@ $ticker
 group by op.asset_id, ticker.id, asset.id
 order by
   $order
-" $show
+" 
+
+$psql "$($MYDIR/plotter.sh "$query")" $show

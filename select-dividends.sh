@@ -12,6 +12,7 @@ source $(real require.sh)
 
 psql=$MYDIR/psql.sh
 
+plot="'plot:brl'"
 dividends_tax=30
 
 and="1=1"
@@ -25,16 +26,17 @@ today="now()::date"
 this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
 
+# (case when op.currency = 'USD' then round((total*rate),2)::text else total::text end) as brl
 cols="ticker.id,
   ticker.name,
   op.id as op_id,
   op.created,
-  round(op.value, 2) as unit,
-  op.amount,
-  op.total,
+  round(op.value,2) as unit,
+  op.amount as amount,
+  op.total as total,
   op.currency,
-  round(op.rate, 2) as rate,
-  (case when op.currency = 'USD' then round((total*rate), 2)::text else total::text end) BRL
+  round(op.rate,2) as rate,
+  round((total*rate),2) as brl
 "
 group_by="op.id, ticker.id"
 
@@ -106,23 +108,23 @@ do
     --group-by-ticker|--gt)
         cols="ticker.id,
             ticker.name,
-            round(avg(op.value), 2) as unit,
+            round(avg(op.value),2) as unit,
             sum(op.amount) as shares,
             sum(op.total) as total,
             ticker.currency,
-            (case when ticker.currency = 'USD' then round((sum(op.total)*avg(op.rate)), 2)::text else sum(op.total)::text end) BRL
+            (case when ticker.currency = 'USD' then round((sum(op.total)*avg(op.rate)),2)::text else sum(op.total)::text end) as brl
         "
         order_by="ticker.currency, total desc"
         group_by="ticker.id"
     ;;
     --group-by-month|--gm)
         cols="date_part('month', op.created) as month,
-            round(avg(op.value), 2) as unit,
+            round(avg(op.value),2) as unit,
             sum(op.amount) as shares,
             sum(op.total) as total,
             array_agg(distinct ticker.currency) currencies,
-            round(avg(op.rate), 3) avg_rate,
-            round(sum(op.total*op.rate), 2) as brl
+            round(avg(op.rate),3) avg_rate,
+            round(sum(op.total*op.rate),2) as brl
         "
         order_by="month"
         group_by="month"
@@ -130,6 +132,11 @@ do
     --select)
         shift
         cols="$cols,$1"
+    ;;
+    --plot)
+        shift
+        plot="${plot},
+        'plot:$1'"
     ;;
     --order-by|-o)
         shift
@@ -148,7 +155,9 @@ info "dividends between $($psql "select $start") and $($psql "select $end"), gro
 
 filters="$and and $ticker"
 
-query="select $cols
+query="select 
+${cols},
+${plot}
 from dividends op
 join tickers ticker on ticker.id=op.ticker_id
 where op.created between $interval
@@ -159,14 +168,15 @@ order by
 "
 debug "query=$query"
 
-$psql "$query" --full
+$psql "$($MYDIR/plotter.sh "$query")" --full
 
 if [[ "$group_by" == "month" ]]; then
     info "aggregated sum:"
     $psql "select
-    round(sum(total), 2) as USD,
-    round(sum(brl), 2) as BRL,
-    percentage(sum(brl), $dividends_tax) as taxes_in_brl
+    round(sum(total),2) as usd,
+    round(sum(brl),2) as brl,
+    percentage(sum(brl), $dividends_tax) as taxes_in_brl,
+    ${plot}
     from ($query) op
     " --full
 else
@@ -182,7 +192,7 @@ else
         else
         total
         end)
-    ), 2) BRL,
+    ), 2) as brl,
     round(sum(
         (case when op.currency = 'BRL' then
         (total/$rate)
