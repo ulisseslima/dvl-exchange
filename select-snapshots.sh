@@ -24,6 +24,7 @@ psql=$MYDIR/psql.sh
 rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .rates.BRL)
 [[ -z "$rate" ]] && rate=0
 
+plot="'plot:unit'"
 and="1=1"
 ticker="2=2"
 group_by="op.id, ticker.id"
@@ -40,7 +41,7 @@ cols="op.created,
   max(op.id)||'/'||ticker.id \"snap/tick\",
   ticker.name,
   op.price as unit,
-  op.price,op.currency,
+  op.currency,
   (case when op.currency = 'USD' then round((price*$rate),2)::text else '-' end) BRL
 "
 
@@ -119,18 +120,50 @@ do
     --sells)
         and="$and and op.kind='SELL'"
     ;;
+    --plot)
+        shift
+        plot="${plot},
+        'plot:$1'"
+    ;;
     --group-by|-g)
         shift
         group_by="$1"
     ;;
-    --group-by-month|--gm)
-        cols="date_trunc('month', op.created) as month,
-            min(op.price) as min,
-            round(avg(op.price),2) as unit,
-            max(op.price) as max
-        "
-        order_by="month"
-        group_by="month"
+    --group-by-*)
+        case "$1" in
+            *year)
+                grouping=year
+            ;;
+            *month)
+                grouping=month
+            ;;
+            *day)
+                grouping=day
+            ;;
+            *)
+                err "invalid grouping: $1"
+                exit 1
+            ;;
+        esac
+
+        if [[ "$ticker" != '2=2' ]]; then
+            cols="date_trunc('$grouping', op.created) as $grouping,
+                min(op.price) as min,
+                round(avg(op.price),2) as unit,
+                max(op.price) as max
+            "
+            order_by="$grouping"
+            group_by="$grouping"
+        else
+            cols="date_trunc('$grouping', op.created) as $grouping,
+                ticker.name,
+                min(op.price) as min,
+                round(avg(op.price),2) as unit,
+                max(op.price) as max
+            "
+            order_by="$grouping,ticker.name"
+            group_by="$grouping,ticker.id"
+        fi
     ;;
     -*)
         echo "$(sh_name $ME) - bad option '$1'"
@@ -145,7 +178,7 @@ interval="$start and $end"
 info "snapshots between $($psql "select $start") and $($psql "select $end")"
 query="select
   $cols,
-  'plot:unit'
+  ${plot}
 from snapshots op
 join tickers ticker on ticker.id=op.ticker_id
 where op.created between $interval
