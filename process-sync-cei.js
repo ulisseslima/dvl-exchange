@@ -293,6 +293,7 @@ async function processDividends(client, movimentacao, item, ticker) {
 		[tickerId, item.data, movimentacao.precoUnitario, movimentacao.quantidade, movimentacao.valorOperacao, "BRL"]
 	)
 	console.log(`	└ dividend saved`)
+	console.log(`	└- ${BgGreen}${FgWhite}dividends of $${movimentacao.valorOperacao} saved${Reset}`)
 	return matches
 }
 

@@ -45,6 +45,7 @@ fi
 
 position=$($MYDIR/position.sh --until "$created" -t $ticker --short)
 amount=$(echo "$position" | cut -d'|' -f3)
+info "position: $position ($amount)"
 
 info "$ticker_id, '$created', ($total/$amount), $amount, $total, '$asset_currency', $rate"
 

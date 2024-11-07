@@ -25,7 +25,7 @@ fi
 
 query="$1"; shift
 if [[ ! -n "$query" ]]; then
-    err "arg 1 must be the query"
+    err "qerr - arg1 must be the query"
     exit 6
 fi
 
