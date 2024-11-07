@@ -44,7 +44,8 @@ do
     # real_column=$(echo "$query" | grep " as ${column}" | tr -s " " | cut -d'.' -f1,2)
     real_column=$(echo "$query" | grep " as ${column}" | tr -s " ")
     real_column=$(echo $real_column)
-    real_column=$(echo $real_column | cut -d' ' -f1)
+    # real_column=$(echo $real_column | cut -d' ' -f1)
+    real_column=$(echo $real_column | rev | cut -d' ' -f3- | rev | tr '/' '\/')
 
     require real_column "couldn't find column from '$column' alias"
 
@@ -53,8 +54,17 @@ do
     min=$(echo "$min_max" | cut -d'|' -f1)
     max=$(echo "$min_max" | cut -d'|' -f2)
 
-    debug "${column}: updated query: $(echo "$query" | sed -E "s/'plot:(.*)'/plot\($real_column, $chart_resolution, $min, $max\)/")"
-    query=$(echo "$query" | sed -E "s/'plot:${column}'/plot\($real_column, $chart_resolution, $min, $max\) as plot_${column}/")
+    if [[ "$real_column" == *'/'* && "$real_column" == *'|'* ]]; then
+        err "unparseable column, contains / and |: $real_column"
+        exit 1
+    fi
+    
+    if [[ "$real_column" == *'/'* ]]; then
+        query=$(echo "$query" | sed -E "s|'plot:${column}'|plot\($real_column, $chart_resolution, $min, $max\) as plot_${column}|")
+    else
+        query=$(echo "$query" | sed -E "s/'plot:${column}'/plot\($real_column, $chart_resolution, $min, $max\) as plot_${column}/")
+    fi
+    debug "${column}: updated query: $query"
 done < <(echo "$query" | grep 'plot:' | cut -d':' -f2 | tr -d "'" | tr -d ",")
 
 echo "$query"

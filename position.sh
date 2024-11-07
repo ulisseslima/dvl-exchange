@@ -12,10 +12,11 @@ source $(real require.sh)
 
 psql=$MYDIR/psql.sh
 
-plot="'plot:cost'"
+plot="'plot:n'"
 summary=false
 simulation=false
 interval="'1900-01-01' and now()"
+and="1=1"
 ticker=""
 show='--full'
 percentage_diff="percentage_diff(price(ticker.id)*sum(op.amount), sum(op.price))"
@@ -55,13 +56,21 @@ do
       cut=$1
       interval="'1900-01-01' and '$1'"
     ;;
-    --custom|-c)
+    --custom)
       shift
       interval="$1"
     ;;
     --ticker|-t)
       shift
       ticker="and ticker.name ilike '${1,,}%'"
+    ;;
+    --xticker|-xt)
+      shift
+      ticker="and ticker.name not ilike '${1,,}%'"
+    ;;
+    --currency|-c)
+      shift
+      and="$and and op.currency='${1^^}'"
     ;;
     --short|-s)
       show=""
@@ -118,6 +127,7 @@ join assets asset on asset.id=op.asset_id
 join tickers ticker on ticker.id=asset.ticker_id
 where op.created between $interval
 and simulation is $simulation
+and $and
 $ticker
 group by op.asset_id, ticker.id, asset.id
 order by

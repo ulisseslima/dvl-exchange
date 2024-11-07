@@ -12,7 +12,7 @@ source $(real require.sh)
 
 psql=$MYDIR/psql.sh
 
-plot="'plot:cost'"
+plot="'plot:minper'"
 show='--full'
 filter="(now()::date - interval '1 month')"
 fname=year
@@ -53,18 +53,24 @@ done
 
 info "$fname's snapshot, ordered by cheapest price now (compared to $(dop "${filter}::date")):"
 
+# round(avg(snap.price), 2)||' ('||
+#     (round(((round(avg(snap.price), 2)-(select price(ticker.id)))*100/(select price(ticker.id))), 2))
+#     ||'%)' as \"avg (%)\",
+
+# min(snap.price)||' ('||
+#     (round(((min(snap.price)-(select price(ticker.id)))*100/(select price(ticker.id))),2))
+#     ||'%)' as \"min (%)\",
+
 query="select
   (select id from assets where ticker_id=ticker.id) ass,
   ticker.name,
   max(snap.price)||' ('||
-    (round(((max(snap.price)-(select price(ticker.id)))*100/(select price(ticker.id))), 2))
+    (round(((max(snap.price)-(select price(ticker.id)))*100/(select price(ticker.id))),2))
     ||'%)' as \"max (%)\",
-  round(avg(snap.price), 2)||' ('||
-    (round(((round(avg(snap.price), 2)-(select price(ticker.id)))*100/(select price(ticker.id))), 2))
-    ||'%)' as \"avg (%)\",
-  min(snap.price)||' ('||
-    (round(((min(snap.price)-(select price(ticker.id)))*100/(select price(ticker.id))), 2))
-    ||'%)' as \"min (%)\",
+  round(avg(snap.price),2) as avg,
+  (round(((round(avg(snap.price),2)-(select price(ticker.id)))*100/(select price(ticker.id))),2)) as avgper,
+  min(snap.price) as min,
+  (round(((min(snap.price)-(select price(ticker.id)))*100/(select price(ticker.id))),2)) as minper,
   (select
     (case
       when (select price(ticker.id)) < avg(snap.price) then '↓ '
@@ -78,8 +84,8 @@ query="select
       when (select price(ticker.id)) >= max(snap.price) then ' X'
       else ''
     end)) now,
-  last_buy(ticker.id) last_buy,
-  avg_buy(ticker.id) avg_buy,
+  last_buy(ticker.id) as last_buy,
+  avg_buy(ticker.id) as avg_buy,
   max(snap.currency) currency,
   ${plot}
 from snapshots snap
@@ -95,3 +101,4 @@ order by
 " 
 
 $psql "$($MYDIR/plotter.sh "$query")" $show
+# $psql "$query" $show
