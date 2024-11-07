@@ -218,6 +218,10 @@ $f$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION percentage_diff(a numeric, b numeric)
 RETURNS NUMERIC AS $f$
 BEGIN
+  if (b = 0) then
+    RAISE INFO 'percentage_diff: b cannot be zero';
+    RETURN 0;
+  end if;
   RETURN round((a-b)*100/b, 2);
 END;
 $f$ LANGUAGE plpgsql;
@@ -366,6 +370,11 @@ DECLARE
     to_range1 int := 1;
     to_range2 int := resolution;
 BEGIN
+    if ((from_range2 - from_range1) = 0) then
+      RAISE INFO 'plot: (from_range2 - from_range1) cannot eq zero';
+      RETURN 0;
+    end if;
+
     linear_transform := ((value - from_range1) / (from_range2 - from_range1) * (to_range2 - to_range1) + to_range1)::int;
 
     -- Step 1: Generate the repeated pattern (equivalent to printf and tr)
