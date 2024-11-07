@@ -27,22 +27,27 @@ new_amount=$1
 require -n new_amount
 shift
 
+simulation=false
+
 while test $# -gt 0
 do
   case "$1" in
     --date|-d|--created)
-      shift 
+      shift
       created="$1"
       if [[ "$created" != *':'* ]]; then
         created="$created $(now.sh -t)"
       fi
     ;;
-    -*) 
+    --sim*)
+      simulation=true
+    ;;
+    -*)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;
   esac
-  
+
   shift
 done
 
@@ -60,12 +65,16 @@ if [[ -z "$asset_id" ]]; then
   exit 2
 fi
 
-amount=$($query "select amount from assets where id = $asset_id")
-if [[ $(op.sh "${amount} = ${new_amount}") == t ]]; then
-	err "	└ reverse split already saved for ${ticker}#$asset_id = $amount"
-  exit 0
+if [[ "$simulation" == false ]]; then
+  amount=$($query "select amount from assets where id = $asset_id")
+  if [[ $(op.sh "${amount} = ${new_amount}") == t ]]; then
+    err "	└ split already saved for ${ticker}#$asset_id = ${amount}. reverse: $reverse"
+    exit 0
+  fi
+else
+  amount=$($query "select sum(amount) from asset_ops where id = $asset_id")
 fi
-info "current amount: ${amount}"
+info "asset #$asset_id - current amount: ${amount}"
 
 reverse=false
 if [[ $(op.sh "${amount}>${new_amount}") == t ]]; then
@@ -73,8 +82,10 @@ if [[ $(op.sh "${amount}>${new_amount}") == t ]]; then
   info "(reverse split)"
 fi
 
-$query "update assets set amount=$new_amount where id=$asset_id"
-info " └- reverse split applied"
+if [[ "$simulation" == false ]]; then
+  $query "update assets set amount=$new_amount where id=$asset_id"
+  info " └- split applied. reverse: $reverse"
+fi
 
 $query "insert into splits 
   (asset_id, ticker_id, old_amount, new_amount, reverse) 
@@ -89,5 +100,6 @@ fi
 
 id=$($query "insert into asset_ops 
   (asset_id,kind,amount,price,currency,simulation) 
-values ($asset_id, 'SPLIT', $op_amount, 0, 'BRL', false)
+values ($asset_id, 'SPLIT', $op_amount, 0, 'BRL', $simulation)
 ")
+info "split complete"
