@@ -52,6 +52,7 @@ do
       ;;
       -*)
         echo "$(sh_name $ME) - bad option '$1'"
+        exit 1
       ;;
   esac
   shift

@@ -133,6 +133,7 @@ do
     ;;
     -*)
         echo "$0 - bad option '$1'"
+        exit 1
     ;;
     esac
     shift

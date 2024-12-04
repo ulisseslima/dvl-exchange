@@ -190,7 +190,7 @@ function prompt_conf() {
 	done
 
 	if [[ $set == true ]]; then
-        prop $LOCAL_ENV $keyname $currval
+        prop $LOCAL_ENV $keyname "$currval"
         source $LOCAL_ENV
     fi
 }
