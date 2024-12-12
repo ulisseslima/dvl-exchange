@@ -53,8 +53,14 @@ do
     --full-time)
       amount=160
     ;;
-    --fixed-income)
-      source=fixed-income
+    --fixed-income|--passive-income)
+      source=passive-income
+    ;;
+    --stable)
+      source=stable-income
+    ;;
+    --extra)
+      source=extra-income
     ;;
     --fraction)
       shift

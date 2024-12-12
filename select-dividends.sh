@@ -49,6 +49,8 @@ do
     ;;
     --ticker|-t)
         shift
+        plot="'plot:unit'"
+
         ticker="ticker.name ilike '$1%'"
         ticker_id=$($psql "select id from tickers where name ilike '${1}%' limit 1")
         ticker_name=$($psql "select name from tickers where name ilike '${1}%' limit 1")

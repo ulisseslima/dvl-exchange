@@ -155,7 +155,7 @@ query="select 'cost' as type, sum(amount)
   union
   select 'dividends' as type, sum(total) 
   from earnings
-  where source = 'fixed-income'
+  where source = 'passive-income'
 "
 
 agg=$($psql "$query")

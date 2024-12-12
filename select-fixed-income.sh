@@ -1,6 +1,6 @@
 #!/bin/bash -e
 # @installable
-# adds a new fixed-income operation
+# select fixed-income operations
 MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
@@ -138,19 +138,23 @@ if [[ -n "$institution" ]]; then
     query="select 'cost' as type, sum(amount), max(institution) as institution
     from fixed_income
     where institution ilike '${institution}%'
+    and created between $interval
     union
     select 'dividends' as type, sum(total), max(institution_id)
     from earnings
-    where source = 'fixed-income'
+    where source = 'passive-income'
+    and created between $interval
     and institution_id ilike '${institution}%'
     "
 else
     query="select 'cost' as type, sum(amount) 
     from fixed_income
+    where created between $interval
     union
     select 'dividends' as type, sum(total) 
     from earnings
-    where source = 'fixed-income'
+    where source = 'passive-income'
+    and created between $interval
     "
 fi
 

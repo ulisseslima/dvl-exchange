@@ -44,27 +44,43 @@ function agg() {
 while test $# -gt 0
 do
     case "$1" in
-    --where)
-        shift
-        and="$1"
-    ;;
     --institution|-t|--from)
         shift
         institution="institution.id ilike '$1%'"
     ;;
+    --passive)
+        and="$and and source = 'passive-income'"
+    ;;
+    --dividends)
+        and="$and and source = 'passive-income'"
+        include_dividends=true
+    ;;
+    --stable)
+        and="$and and source = 'stable-income'"
+    ;;
+    --extra)
+        and="$and and source = 'extra-income'"
+    ;;
+    --active)
+        and="$and and source in ('stable-income', 'extra-income')"
+    ;;
     --today)
         start="$today"
         end="($today + interval '1 day')"
+        carry_args="$carry_args --today"
     ;;
     --week|-w)
         start="($today - interval '1 week')"
         end="$today"
+        carry_args="$carry_args --week"
     ;;
     --month|-m)
         # kotoshi=今年
         if [[ -n "$2" && "$2" != "-"* ]]; then
             shift
             m=$1
+
+            carry_args="$carry_args --month $m"
 
             this_month_int=$(op.sh "${this_month}::int")
             month_int=$(op.sh "${m}::int")
@@ -75,22 +91,31 @@ do
         else
             start="($today - interval '1 month')"
             end="$today"
+
+            carry_args="$carry_args --month"
         fi
     ;;
     --year|-y)
         if [[ -n "$2" && "$2" != "-"* ]]; then
             shift
             y=$1
+
+            carry_args="$carry_args --year $y"
+
             start="'$y-01-01'"
             end="('$y-01-01'::timestamp + interval '1 year')"
         else
             start="($today - interval '1 year')"
             end="($today + interval '1 day')"
+
+            carry_args="$carry_args --year"
         fi
     ;;
     --years)
         shift
         n=$1
+
+        carry_args="$carry_args --years $n"
         
         d1="$today"
         start="($d1 - interval '$n years')"
@@ -99,6 +124,8 @@ do
     --months)
         shift
         n=$1
+
+        carry_args="$carry_args --months $n"
 
         d1="$today"
         if [[ -n "$2" && "$2" != -* ]]; then
@@ -109,23 +136,11 @@ do
         start="($d1 - interval '$n months')"
         end="($d1 + interval '1 day')"
     ;;
-    --until)
-        shift
-        cut=$1
-        start="'1900-01-01'"
-        and="'$1'"
-    ;;
     --all|-a)
         start="'1900-01-01'"
         end="CURRENT_TIMESTAMP"
-    ;;
-    --limit|--last)
-        shift
-        limit=$1
 
-        start="'1900-01-01'"
-        end="CURRENT_TIMESTAMP"
-        order_by='op.created desc'
+        carry_args="$carry_args --all"
     ;;
     --order-by|-o)
         shift
@@ -188,3 +203,8 @@ query="select
 from ($query) op
 "
 $psql "$query" --full
+
+if [[ "$include_dividends" == true ]]; then
+    info "dividends, same period"
+    $MYDIR/select-dividends.sh $carry_args
+fi
