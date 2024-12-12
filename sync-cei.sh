@@ -1,6 +1,6 @@
 #!/bin/bash -e
 # @installable
-# snapshot from today's tickers
+# sync with CEI API
 MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
