@@ -44,6 +44,10 @@ do
     --csv)
       show='--csv'
     ;;
+    --currency|-c)
+      shift
+      conditions="$conditions and snap.currency = '${1^^}'"
+    ;;
     -*)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
@@ -95,9 +99,10 @@ join snapshots latest on latest.id=snap.id
 left join snapshots latest_x on latest_x.id=snap.id and latest_x.id>latest.id
 where snap.created > $filter
 and latest_x is null
+$conditions
 group by ticker.id
 order by 
-  max(snap.currency),
+  currency,
   (select price(ticker.id)-(min(snap.price)))
 " 
 
