@@ -158,10 +158,14 @@ if [[ $schedule == true && $(nan.sh "$recurring") == false ]]; then
   next_recurrence=$(op.sh "('${created}'::date+interval '$recurring months')::date")
   >&2 echo "$next_recurrence"
 
-  echo "$MYSELF '$store_name' '$product_name' '$product_brand' $amount $price -d $next_recurrence --background"\
-   | at $next_recurrence
-  
-  [[ $background == false ]] && atq
+  if [[ $(op.sh "'$next_recurrence' < now()::date") != t ]]; then
+    echo "$MYSELF '$store_name' '$product_name' '$product_brand' $amount $price -d $next_recurrence --background"\
+    | at $next_recurrence
+    
+    [[ $background == false ]] && atq
+  else
+    info "skipping schedule for the past"
+  fi
 fi
 
 if [[ "$background" == true ]]; then
