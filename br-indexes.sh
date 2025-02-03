@@ -1,6 +1,10 @@
 #!/bin/bash
 # @installable
 # show common indexes in month's values
+# e.g.:
+# $0 CDI --start 2024-07-05 --end 2025-01-05 # accumulated CDI during period
+# applying it on a value of 100:
+# $0 CDI --start 2024-07-05 --end 2025-01-05 | percent.sh 100 --op '+'
 MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
