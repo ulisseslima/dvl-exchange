@@ -315,7 +315,7 @@ BEGIN
 
   raise debug 're: %', _result;
 
-  select store.name||'#'||amount||'#'||price
+  select store.name||'#'||amount||'#'||price||'#'||op.currency
   from product_ops op
   join stores store on store.id=op.store_id
   where product_id=_result.id

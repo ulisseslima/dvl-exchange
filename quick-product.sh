@@ -16,7 +16,6 @@ product="$1"
 require product 'product line as it appears in the receipt'
 
 created="$(now.sh -dt)"
-currency=BRL
 
 while test $# -gt 0
 do
@@ -103,11 +102,17 @@ if [[ -n "$price" ]]; then
   last_op_price="$price"
 fi
 
+last_op_currency=$(echo "$match" | cut -d'#' -f7)
+echo "last_op_currency:$last_op_currency"
+if [[ -n "$currency" ]]; then
+  last_op_currency="$currency"
+fi
+
 echo "last similar buy:"
 echo "$match"
 
 echo "confirm?"
-echo "'$last_op_store' '$product_name' '$product_brand' $last_op_amount $last_op_price $currency -d '$created'"
+echo "'$last_op_store' '$product_name' '$product_brand' $last_op_amount $last_op_price $last_op_currency -d '$created'"
 read confirmation
 
-$MYDIR/new-product.sh "$last_op_store" "$product_name" "$product_brand" $last_op_amount $last_op_price -d "$created" -c "$currency"
+$MYDIR/new-product.sh "$last_op_store" "$product_name" "$product_brand" $last_op_amount $last_op_price -d "$created" -c "$last_op_currency"
