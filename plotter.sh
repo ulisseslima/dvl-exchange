@@ -50,14 +50,22 @@ do
 
     require real_column "couldn't find column from '$column' alias"
 
-    min_max=$($psql "select min($column), max($column) from ($query) as q")
-    debug "range: $min_max - real col: '$real_column'"
-    min=$(echo "$min_max" | cut -d'|' -f1)
-    max=$(echo "$min_max" | cut -d'|' -f2)
-
     if [[ "$real_column" == *'/'* && "$real_column" == *'|'* ]]; then
         err "unparseable column, contains / and |: $real_column"
         exit 1
+    fi
+
+    min_max=$($psql "select min($column), max($column) from ($query) as q")
+    debug "range: $min_max - real col: '$real_column'"
+    
+    min=$(echo "$min_max" | cut -d'|' -f1)
+    if [[ -z "$min" ]]; then
+        min=0
+    fi
+    
+    max=$(echo "$min_max" | cut -d'|' -f2)
+    if [[ -z "$max" ]]; then
+        max=0
     fi
     
     if [[ "$real_column" == *'/'* ]]; then
