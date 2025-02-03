@@ -159,6 +159,7 @@ interval="$start and $end"
 info "earnings between $($psql "select $start") and $($psql "select $end")"
 query="select
   op.id,
+  op.source,
   institution.id as institution,
   op.created,
   round(op.value, 2) as value,
