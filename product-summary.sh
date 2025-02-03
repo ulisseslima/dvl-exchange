@@ -17,9 +17,12 @@ require product_name
 shift
 
 if [[ "$product_name" == '*' || "$product_name" == 'ANY' ]]; then
-  product_name='%'
+  product_name='1=1'
+else
+  product_name="similarity(store.name||' '||product.name||' '||brand, '${product_name}') > 0.15"
 fi
 
+and="1=1"
 brand="product.brand=product.brand"
 store="store.id=store.id"
 limit=5
@@ -79,6 +82,14 @@ do
         ;;
       esac
     ;;
+    --tags|-t)
+      shift
+      and="$and and op.tags like '%${1^^}%'"
+    ;;
+    --product-tags)
+      shift
+      and="$and and product.tags like '%${1^^}%'"
+    ;;
     -*)
         echo "$(sh_name $ME) - bad option '$1'"
         exit 1
@@ -90,44 +101,28 @@ done
 #info "total bought:"
 #$query "select sum(price) from product_ops where product_id = $product_id"
 
+# nobefore similarity
+# where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
+
 info "$store - $product_name [$brand] - latest buys:"
 $query "select 
-  op.id op, store.name store, 
-  store.id||'#'||product.id sid_pid, 
-  product.name product, product.brand, 
-  amount, price, op.currency cur, 
+  op.id op, store.name as store, 
+  store.id||'#'||product.id as sid_pid, 
+  product.name as product, product.brand, 
+  amount, price, op.currency as cur, 
   op.created,
-  round((1 * price / amount), 2) as unit
+  round((1 * price / amount), 2) as unit,
+  op.tags
   from product_ops op
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
-  where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
+  where $product_name
   and $brand
   and $store
+  and $and
   $simulation
 order by op.created desc, op.id desc 
 limit $limit" --full
-
-# info "average price considering period between '$period' and '$interval':"
-# $query "select
-#     product.id,
-#     product.name product,
-#     product.brand,
-#     round(avg(price), 2) as price,
-#     max(op.currency) cur,
-#     round((1 * sum(price) / sum(amount)), 2) as unit,
-#     product.extra->'carbs' \"carbs%\"
-#   from product_ops op
-#   join products product on product.id=op.product_id
-#   join stores store on store.id=op.store_id  
-#   where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
-#   and $brand
-#   and $store
-#   $simulation
-#   and op.created between '$period' and $interval
-# group by product.id, product.brand
-# order by max(op.created) desc 
-# " --full
 
 info "cheapest buys:"
 $query "select 
@@ -135,13 +130,15 @@ $query "select
   amount,
   price, op.currency cur,
   op.created,
-  round((1 * price / amount), 2) as unit
+  round((1 * price / amount), 2) as unit,
+  op.tags
   from product_ops op
   join products product on product.id=op.product_id
   join stores store on store.id=op.store_id  
-  where (product.name = '${product_name}' or product.name iLIKE '%${product_name}%')
+  where $product_name
   and $brand
   and $store
+  and $and
   $simulation
 order by 
   unit,

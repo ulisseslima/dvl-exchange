@@ -53,6 +53,10 @@ do
       shift
       tags="${1^^}"
     ;;
+    --product-tags|-t)
+      shift
+      ptags="${1^^}"
+    ;;
     --extra|-e)
       shift
       extra="'${1,,}'"
@@ -120,14 +124,14 @@ fi
 product_id=$($query "select id from products where (name = '${product_name}' or name iLIKE '%${product_name}%') and brand iLIKE '%${product_brand}%' order by name limit 1")
 if [[ -z "$product_id" ]]; then
   info "creating new product: $product_name ($product_brand)"
-  product_id=$($query "insert into products (name, brand, tags, extra, recurring) values ('$product_name', '$product_brand', $tags, $extra, $recurring) returning id")
+  product_id=$($query "insert into products (name, brand, tags, extra, recurring) values ('$product_name', '$product_brand', '$ptags', $extra, $recurring) returning id")
   echo "#$product_id"
 else
   original_product=$($query "select name, recurring from products where id = $product_id")
   recurring=$(echo "$original_product" | cut -d'|' -f2)
 
   info "updating product #$product_id: $original_product ($product_brand)"
-  $query "update products set tags=tags || $tags, extra=extra || $extra where id = $product_id"
+  $query "update products set tags=tags || '$ptags', extra=extra || $extra where id = $product_id"
 fi
 
 if [[ $amount == 0 ]]; then
@@ -148,8 +152,8 @@ if [[ -z "$currency" ]]; then
   info "using last currency: $currency"
 fi
 
-id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created, hidden, simulation)
-  select $store_id, $product_id, $amount, $price, '$currency', '$created', $hide, $simulation
+id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created, hidden, simulation, tags)
+  select $store_id, $product_id, $amount, $price, '$currency', '$created', $hide, $simulation, '$tags'
   returning id
 ")
 

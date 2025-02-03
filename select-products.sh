@@ -35,7 +35,7 @@ max_width=100
 while test $# -gt 0
 do
     case "$1" in
-    --where|-w)
+    --where)
         shift
         and="$1"
     ;;
@@ -43,6 +43,17 @@ do
         shift
         name="${1^^}"
         and="$and and similarity(store.name||' '||product.name||' '||brand, '${name}') > 0.15"
+    ;;
+    --tags|-t)
+      shift
+      and="$and and op.tags like '%${1^^}%'"
+    ;;
+    --product-tags)
+      shift
+      and="$and and product.tags like '%${1^^}%'"
+    ;;
+    --untagged)
+      and="$and and op.tags is null"
     ;;
     --name|-p)
         shift
@@ -71,7 +82,7 @@ do
     ;;
     --week|-w)
         start="($today - interval '1 week')"
-        end="$today"
+        end="($today + interval '1 day')"
     ;;
     --width)
         shift
@@ -90,7 +101,7 @@ do
             end="('$year-$m-01'::timestamp + interval '1 month')"
         else
             start="($today - interval '1 month')"
-            end="$today"
+            end="($today + interval '1 day')"
         fi
     ;;
     --year|-y)
@@ -101,7 +112,7 @@ do
             end="('$y-01-01'::timestamp + interval '1 year')"
         else
             start="($today - interval '1 year')"
-            end="$today"
+            end="($today + interval '1 day')"
         fi
     ;;
     --until|-u)
@@ -143,23 +154,24 @@ if [[ $start == 1900* && $end == *2900 ]]; then
 fi
 
 if [[ "$grouping" == *'op.id'* ]]; then
-    extra_cols="op.id,op.created,"
+    extra_cols="op.id as op,"
     main_ordering="op.created,${ordering}"
 else
     main_ordering="$ordering"
 fi
 
 $query "select ${extra_cols}
-  max(op.created) last,
-  max(store.category) category,
-  substring(max(store.name), 0, $max_width) store,
+  max(op.created) as last,
+  max(store.category) as category,
+  substring(max(store.name), 0, $max_width) as store,
   product.id,
-  substring(product.name, 0, $max_width) product,
-  substring(product.brand, 0, $max_width) brand,
+  substring(product.name, 0, $max_width) as product,
+  substring(product.brand, 0, $max_width) as brand,
   round((1 * sum(op.price)::numeric / sum(op.amount)::numeric), 2) as avg_unit_price,
   sum(op.price) as total_spent,
   sum(op.amount) as total_amount,
-  count(op.id) as buys
+  count(op.id) as buys,
+  array_agg(distinct op.tags) as tags
 from product_ops op
 join products product on product.id=op.product_id
 join stores store on store.id=op.store_id
@@ -174,11 +186,11 @@ order by $main_ordering
 if [[ -z "$category_filter" ]]; then
     info -n "total spending of products between $($query "select $start") and $($query "select $end") by category"
     $query "select 
-      max(op.created) last,
+      max(op.created) as last,
       store.category,
       round(sum(op.price), 2) as total_spent,
       round(sum(op.amount), 2) as total_amount,
-      (array_agg(product.name))[1:2] examples
+      (array_agg(distinct product.name))[1:2] as examples
     from product_ops op
     join products product on product.id=op.product_id
     join stores store on store.id=op.store_id
