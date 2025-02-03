@@ -36,7 +36,8 @@ while test $# -gt 0
 do
   case "$1" in
     --date|-d|--created)
-      shift 
+      shift
+      info "date: $1"
       created="$1"
       if [[ "$created" != *':'* ]]; then
         created="$created $(now.sh -t)"

@@ -234,3 +234,9 @@ function plot() {
     linear_transform=$(op.sh "(($value - $from_range1) / ($from_range2 - $from_range1) * ($to_range2 - $to_range1) + $to_range1)::int")
     printf %${resolution}s | tr " " "$pattern" | sed s/./$plot/$linear_transform
 }
+
+function lpad() {
+    n=$1
+    pads=${2:-2}
+    printf "%0${pads}d\n" $n
+}
