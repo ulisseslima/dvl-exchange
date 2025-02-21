@@ -28,10 +28,14 @@ do
       shift
       symbols="$1"
     ;;
-    --date|--created|-d)
+    --date|-d)
       shift
       date="$(echo $1 | cut -d' ' -f1)"
       mode=historical
+      if [[ "$date" == *'/'*'/'* ]]; then
+        datef="$(echo $date | cut -d'/' -f3)-$(echo $date | cut -d'/' -f2)-$(echo $date | cut -d'/' -f1)"
+        date=$datef
+      fi
 
       info "data from $date"
     ;;
@@ -55,11 +59,11 @@ else
   if [[ -z "$date" ]]; then
     date=$(now.sh -dt)
   fi
-  
+
   if [[ -n "$exchange" ]]; then
     $query "insert into snapshots
     (ticker_id, price, currency, created)
-    values 
+    values
     ((select id from tickers where name = 'USD-BRL' limit 1), $exchange, 'BRL', '$date')"
   else
     err "$response"
