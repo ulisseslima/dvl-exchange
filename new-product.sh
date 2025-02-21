@@ -173,7 +173,7 @@ if [[ $schedule == true && $(nan.sh "$recurring") == false ]]; then
 fi
 
 if [[ "$background" == true ]]; then
-  notify.sh "background execution #${id}: $product_name ($product_brand) - $price"
+  notify.sh "bg ex #${id}: $product_name ($product_brand) - $price"
   return 0
 fi
 
