@@ -147,11 +147,11 @@ if [[ -n "$institution" ]]; then
     and institution_id ilike '${institution}%'
     "
 else
-    query="select 'cost' as type, sum(amount) 
+    query="select 'cost' as type, coalesce(sum(amount), 0) 
     from fixed_income
     where created between $interval
     union
-    select 'dividends' as type, sum(total) 
+    select 'dividends' as type, coalesce(sum(total), 0) 
     from earnings
     where source = 'passive-income'
     and created between $interval
