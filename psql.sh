@@ -11,6 +11,16 @@ MYDIR() { echo "$(dirname $(MYSELF))"; }
 MYNAME() { echo "$(basename $(MYSELF))"; }
 CALLER=$(basename `readlink -f $0`)
 
+##
+# called on error
+function failure() {
+  local lineno=$1
+  local msg=$2
+  echo "$(basename $0): Failed at $lineno: '$msg' - query:"
+  echo "$query"
+}
+trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
+
 # TODO support for different ports and hosts
 connection="psql -h localhost -U $DB_USER $DB_NAME"
 debug "connection=$connection"
