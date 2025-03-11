@@ -174,7 +174,7 @@ fi
 
 if [[ "$background" == true ]]; then
   notify.sh "bg ex #${id}: $product_name ($product_brand) - $price"
-  return 0
+  exit 0
 fi
 
 if [[ -n "$id" ]]; then
