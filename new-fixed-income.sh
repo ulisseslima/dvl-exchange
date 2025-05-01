@@ -24,6 +24,8 @@ shift
 amount="$1";          require -nx amount
 shift
 
+notes="''"
+
 while test $# -gt 0
 do
   case "$1" in
@@ -33,6 +35,10 @@ do
       if [[ "$created" != *':'* ]]; then
         created="$created $(now.sh -t)"
       fi
+    ;;
+    --notes)
+      shift
+      notes="$1"
     ;;
     --recurring)
       shift
@@ -49,8 +55,8 @@ done
 
 [[ -z "$created" ]] && created="$(now.sh -dt)"
 
-id=$($query "insert into fixed_income (created, institution, amount)
-  select '$created', '$institution', $amount
+id=$($query "insert into fixed_income (created, institution_id, amount, notes)
+  select '$created', '$institution', $amount, '$notes'
   returning id
 ")
 

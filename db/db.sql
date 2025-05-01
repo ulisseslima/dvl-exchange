@@ -160,9 +160,10 @@ create table fixed_income (
     id serial PRIMARY KEY,
     created timestamp default now(),
     currency varchar not null default 'BRL',
-    institution varchar,
+    institution_id varchar not null references institutions on DELETE CASCADE,
     amount numeric not null,
-    rate numeric not null default 1
+    rate numeric not null default 1,
+    notes text
 );
 
 -- region specific: BR

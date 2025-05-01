@@ -14,6 +14,8 @@ psql=$MYDIR/psql.sh
 
 and="1=1"
 ticker="2=2"
+cols="op.id,op.created,currency,institution_id,amount,notes"
+join="join institutions i on op.institution_id = i.id"
 grouping="op.id"
 order_by='max(op.created)'
 
@@ -24,7 +26,6 @@ today="now()::date"
 this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
 simulation=false
-earnings=true
 
 while test $# -gt 0
 do
@@ -97,18 +98,25 @@ do
     --from|--institution|-i)
         shift
         institution="${1^^}"
-        and="$and and op.institution='${institution}'"
+        and="$and and op.institution_id like '${institution}%'"
+    ;;
+    --join)
+        shift
+        join="$1"
+    ;;
+    --union)
+        shift
+        union="$1"
     ;;
     --group-by|-g)
         shift
         grouping="$1"
     ;;
-    --total-only)
-        total_only=true
-    ;;
-    --earnings)
-        shift
-        earnings=$1
+    --totals)
+        totals=true
+        
+        cols="i.public_id,institution_id,sum(amount) as contribution"
+        grouping="op.institution_id,i.id"
     ;;
     -*)
         echo "$(sh_name $ME) - bad option '$1'"
@@ -121,48 +129,61 @@ done
 interval="$start and $end"
 
 info "fixed income ops between $($psql "select $start") and $($psql "select $end")"
-query="select * 
-from fixed_income op 
-where op.created between $interval
-and $and
-group by $grouping
-order by
-  $order_by
+query="select ${cols}
+ from fixed_income op 
+ $join
+ where op.created between $interval
+ and $and
+ $union
+ group by ${grouping}
+ order by ${order_by}
 "
 
 $psql "$query" --full
 debug "$query"
 
-info -n  "aggregated (all-time):"
-if [[ -n "$institution" ]]; then
-    query="select 'cost' as type, sum(amount), max(institution) as institution
-    from fixed_income
-    where institution ilike '${institution}%'
-    and created between $interval
-    union
-    select 'dividends' as type, sum(total), max(institution_id)
-    from earnings
-    where source = 'passive-income'
-    and created between $interval
-    and institution_id ilike '${institution}%'
+info -n  "aggregated:"
+if [[ "$totals" == true ]]; then
+    query="select pubid, institution_id, sum(val) grand_total from (
+        select 'cost' as type, amount as val, institution_id, i.public_id as pubid
+        from fixed_income op
+        $join
+        where op.created between $interval
+        and $and
+        union all
+        select 'dividends' as type, total as val, institution_id, i.public_id as pubid
+        from earnings op
+        $join
+        where source = 'passive-income'
+        and op.created between $interval
+        and $and
+    ) as totals 
+    group by institution_id, pubid
     "
 else
-    query="select 'cost' as type, coalesce(sum(amount), 0) 
-    from fixed_income
+    query="select 'cost' as type, coalesce(sum(amount), 0) as total, max(institution_id) as institution_id
+    from fixed_income op
     where created between $interval
+    and $and
     union
-    select 'dividends' as type, coalesce(sum(total), 0) 
-    from earnings
+    select 'dividends' as type, coalesce(sum(total), 0) as total, max(institution_id) as institution_id
+    from earnings op
     where source = 'passive-income'
     and created between $interval
+    and $and
     "
 fi
 
 $psql "$query" --full
 debug "$query"
 
-info -n "total:"
-agg=$($psql "$query")
-cost=$(echo "$agg" | head -1 | cut -d'|' -f2)
-divs=$(echo "$agg" | tail -1 | cut -d'|' -f2)
-echo "$(op.sh ${cost}+${divs})"
+if [[ "$totals" != true ]]; then
+    info -n "total:"
+    agg=$($psql "$query")
+    cost=$(echo "$agg" | head -1 | cut -d'|' -f2)
+    divs=$(echo "$agg" | tail -1 | cut -d'|' -f2)
+    [[ -z "$divs" ]] && divs=0
+    [[ -z "$cost" ]] && cost=0
+
+    echo "$(op.sh ${cost}+${divs})"
+fi

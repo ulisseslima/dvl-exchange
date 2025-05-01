@@ -17,7 +17,8 @@ dividends_tax=30
 
 and="1=1"
 ticker="2=2"
-order_by='max(op.created)'
+# order_by='max(op.created)'
+order_by='total desc'
 
 start="(now()::date - interval '1 month')"
 end="CURRENT_TIMESTAMP"
@@ -93,6 +94,19 @@ do
             end="$today"
         fi
     ;;
+    --year-month|-ym)
+        if [[ -n "$2" && "$2" != "-"* ]]; then
+            shift
+            y=$1
+            shift
+            m=$1
+            start="'$y-$m-01'"
+            end="('$y-$m-01'::timestamp + interval '1 month')"
+        else
+            start="($today - interval '1 month')"
+            end="$today"
+        fi
+    ;;
     --until)
         shift
         cut=$1
@@ -140,6 +154,9 @@ do
         plot="${plot},
         'plot:$1'"
     ;;
+    --no-plot)
+        plot="'noop'"
+    ;;
     --order-by|-o)
         shift
         order_by="$1"
@@ -153,7 +170,7 @@ do
 done
 
 interval="$start and $end"
-info "dividends between $($psql "select $start") and $($psql "select $end"), grouping by $group_by"
+info "dividends between $($psql "select $start") and $($psql "select $end"), grouping by $group_by (order by $order_by)"
 
 filters="$and and $ticker"
 
