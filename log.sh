@@ -38,7 +38,10 @@ function log() {
     level="$1"
     shift
 
-    indicator="$1"
+    TCindicator="$1"
+    shift
+
+    TCcolor="$1"
     shift
 
 	if [[ "$1" == '-n' ]]; then
@@ -47,21 +50,26 @@ function log() {
 	fi
 
     if [[ $level == DEBUG && $(debugging) == on || $level != DEBUG ]]; then
-        echo -e "$indicator $(now.sh -t) - ${FUNCNAME[2]}@${BASH_LINENO[1]}/$level: $@"
+        echo -e "${TCcolor}${TCindicator} $(now.sh -t) - ${FUNCNAME[2]}@${BASH_LINENO[1]}/$level:${TCNC} ${TCcolor}$@${TCNC}"
     fi
-    echo -e "$MYSELF - $indicator $(now.sh -dt) - ${FUNCNAME[2]}@${BASH_LINENO[1]}/$level: $@" >> $logf
+    echo -e "$MYSELF - $TCindicator $(now.sh -dt) - ${FUNCNAME[2]}@${BASH_LINENO[1]}/$level: $@" >> $logf
 }
 
 function info() {
-    >&2 log INFO '###' "$@"
+    # change log color to $CYAN
+    >&2 log INFO '###' "${TCCYAN}" "$@"
 }
 
 function err() {
-    >&2 log ERROR '!!!' "$@"
+    >&2 log ERROR '!!!' "${TCLIGHT_RED}" "$@"
 }
 
 function debug() {
-    >&2 log DEBUG '>>>' "$@"
+    >&2 log DEBUG '<->' "${TCLIGHT_GRAY}" "$@"
+}
+
+function warn() {
+    >&2 log WARN '???' "${TCMAGENTA}" "$@"
 }
 
 for var in "$@"
