@@ -5,6 +5,8 @@ MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
 
+set -o history -o histexpand
+
 source $MYDIR/env.sh
 [[ -f $LOCAL_ENV ]] && source $LOCAL_ENV
 source $MYDIR/log.sh
@@ -185,7 +187,7 @@ rate=$($MYDIR/scoop-rate.sh USD -x BRL | jq -r .rates.BRL)
 require rate
 info "today's rate: $rate"
 
-info "aggregated sum [same value, different currencies]:"
+info -n "aggregated sum [same value, different currencies]:"
 query="select 
   round(sum(
     (case when op.currency = 'USD' then 
@@ -206,6 +208,13 @@ from ($query) op
 $psql "$query" --full
 
 if [[ "$include_dividends" == true ]]; then
-    info "dividends, same period"
+    total_brl_passive=$($psql "$query" | tail -1 | cut -d'|' -f1 | xargs)
+    
+    info -n "dividends, same period"
     $MYDIR/select-dividends.sh $carry_args
+
+    total_brl_dividends=$($MYDIR/select-dividends.sh $carry_args 2>&1 | grep 'aggregated sum' -A3 | tail -1 | cut -d'|' -f1 | xargs)
+    info -n "######################################################"
+    info "total passive+dividends in BRL ($total_brl_passive+$total_brl_dividends):"
+    op.sh "$total_brl_passive + $total_brl_dividends"
 fi
