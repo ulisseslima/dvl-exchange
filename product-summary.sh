@@ -17,9 +17,11 @@ require product_name
 shift
 
 if [[ "$product_name" == '*' || "$product_name" == 'ANY' ]]; then
+  similarity="product.name"
   product_name='1=1'
 else
-  product_name="similarity(store.name||' '||product.name||' '||brand, '${product_name}') > 0.15"
+  similarity="similarity(store.name||' '||product.name||' '||brand, '${product_name}')"
+  product_name="$similarity > 0.15"
 fi
 
 and="1=1"
@@ -121,7 +123,7 @@ $query "select
   and $store
   and $and
   $simulation
-order by op.created desc, op.id desc 
+order by $similarity desc, op.created desc, op.id desc 
 limit $limit" --full
 
 info "cheapest buys:"
@@ -141,6 +143,7 @@ $query "select
   and $and
   $simulation
 order by 
+  $similarity desc,
   unit,
   op.created
 limit $limit" --full
