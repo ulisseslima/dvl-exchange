@@ -1,6 +1,7 @@
 #!/bin/bash -e
 # @installable
-# registers a [reverse] split
+# registers a [reverse] split. we just need to call the script with the current updated amount after the split and the script will figure out the split amount:
+# $0 TICKER 10
 MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)

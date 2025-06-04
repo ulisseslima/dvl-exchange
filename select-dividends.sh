@@ -223,6 +223,7 @@ else
     " --full
 fi
 
+# number of months to calculate the average monthly dividends
 avg=12
 if [[ -n "$ticker_id" ]]; then
     div_pm_query="select round(sum(total)/$avg, 2) from (
@@ -241,6 +242,9 @@ if [[ -n "$ticker_id" ]]; then
         info "$ticker_name - average monthly dividends based on the last $avg months earnings: \$${avg_dividends}"
     fi
 else
+    # the query below returns the average monthly dividends for all tickers
+    # in the last $avg months, grouped by currency
+    # and returns the total in BRL based on the current USD rate
     div_pm_query="select (round(sum(total)/$avg, 2)), currency from (
         select op.total, op.currency
         from dividends op

@@ -107,13 +107,13 @@ store_id=$($query "select id from stores where name = '${store_name}' or name iL
 if [[ -z "$store_id" ]]; then
   info "creating new store: $store_name"
   info "current categories:"
-  $query "select 
-    count(category) n, category, (array_agg(name))[1:2] examples 
-    from stores 
+  $query "select
+    count(category) n, category, (array_agg(name))[1:2] examples
+    from stores
     group by category
     order by category
   " --full
-  
+
   info "enter its category:"
   read category
 
@@ -178,7 +178,7 @@ if [[ "$background" == true ]]; then
 fi
 
 if [[ -n "$id" ]]; then
-  info "new product op: $id"
+  info "new product op: $id - $product_name ($product_brand)"
 
   info "total cost:"
   $query "select sum(price) from product_ops where product_id = $product_id"
