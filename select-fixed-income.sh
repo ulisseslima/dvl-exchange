@@ -161,12 +161,12 @@ if [[ "$totals" == true ]]; then
     group by institution_id, pubid
     "
 else
-    query="select 'cost' as type, coalesce(sum(amount), 0) as total, max(institution_id) as institution_id
+    query="select 'cost' as type, coalesce(sum(amount), 0) as total, array_agg(distinct institution_id) as institution_id
     from fixed_income op
     where created between $interval
     and $and
     union
-    select 'dividends' as type, coalesce(sum(total), 0) as total, max(institution_id) as institution_id
+    select 'dividends' as type, coalesce(sum(total), 0) as total, array_agg(distinct institution_id) as institution_id
     from earnings op
     where source = 'passive-income'
     and created between $interval
