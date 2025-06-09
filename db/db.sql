@@ -389,3 +389,33 @@ BEGIN
 END;
 $f$ LANGUAGE plpgsql;
 --/
+CREATE FUNCTION months_between (t_start timestamp with time zone, t_end timestamp with time zone)
+RETURNS integer
+AS $$
+    SELECT
+        (
+            12 * extract('years' from a.i) + extract('months' from a.i)
+        )::integer
+    from (
+        values (justify_interval($2 - $1))
+    ) as a (i)
+$$
+LANGUAGE SQL
+IMMUTABLE
+RETURNS NULL ON NULL INPUT;
+--/
+CREATE FUNCTION months_between (t_start timestamp without time zone, t_end timestamp without time zone)
+RETURNS integer
+AS $$
+    SELECT
+        (
+            12 * extract('years' from a.i) + extract('months' from a.i)
+        )::integer
+    from (
+        values (justify_interval($2 - $1))
+    ) as a (i)
+$$
+LANGUAGE SQL
+IMMUTABLE
+RETURNS NULL ON NULL INPUT;
+--/

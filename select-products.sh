@@ -10,7 +10,16 @@ source $MYDIR/env.sh
 source $MYDIR/log.sh
 source $(real require.sh)
 
-query=$MYDIR/psql.sh
+##
+# called on error
+function failure() {
+  local lineno=$1
+  local msg=$2
+  echo "$(basename $0): Failed at $lineno: '$msg'"
+}
+trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
+
+psql=$MYDIR/psql.sh
 
 and="1=1"
 brand="2=2"
@@ -52,6 +61,10 @@ do
       shift
       and="$and and product.tags like '%${1^^}%'"
     ;;
+    --subscription)
+      and="$and and product.recurring > 0"
+      extra_cols="product.recurring, "
+    ;;
     --untagged)
       and="$and and op.tags is null"
     ;;
@@ -70,6 +83,15 @@ do
         name="${1^^}"
         category_filter=true
         and="$and and store.category like '%${name}%'"
+    ;;
+    --except-category|--except)
+        shift
+        name="${1^^}"
+        and="$and and store.category not like '%${name}%'"
+    ;;
+    --streaming)
+        category_filter=true
+        and="$and and store.category = 'STREAMING'"
     ;;
     --brand|-b)
         shift
@@ -147,6 +169,9 @@ do
     shift
 done
 
+actual_start=$($psql "select $start")
+actual_end=$($psql "select $end")
+
 interval="$start and $end"
 interval_clause="op.created between $interval"
 if [[ $start == 1900* && $end == *2900 ]]; then
@@ -154,13 +179,13 @@ if [[ $start == 1900* && $end == *2900 ]]; then
 fi
 
 if [[ "$grouping" == *'op.id'* ]]; then
-    extra_cols="op.id as op,"
+    extra_cols="${extra_cols} op.id as op,"
     main_ordering="op.created,${ordering}"
 else
     main_ordering="$ordering"
 fi
 
-$query "select ${extra_cols}
+$psql "select ${extra_cols}
   max(op.created) as last,
   max(store.category) as category,
   substring(max(store.name), 0, $max_width) as store,
@@ -184,8 +209,8 @@ order by $main_ordering
 " --full
 
 if [[ -z "$category_filter" ]]; then
-    info -n "total spending of products between $($query "select $start") and $($query "select $end") by category"
-    $query "select 
+    info -n "total spending of products between $actual_start and $actual_end by category"
+    $psql "select 
       max(op.created) as last,
       store.category,
       round(sum(op.price), 2) as total_spent,
@@ -203,8 +228,8 @@ if [[ -z "$category_filter" ]]; then
     " --full
 fi
 
-info -n "total spending of products between $($query "select $start") and $($query "select $end")"
-$query "select
+info -n "total spending of products between $actual_start and $actual_end"
+totalq="select
   round(sum(op.price), 2) as total_spent,
   round(sum(op.amount), 2) as total_amount
 from product_ops op
@@ -214,4 +239,12 @@ where $interval_clause
 and simulation is $simulation
 and $and
 and $brand
-" --full
+"
+$psql "$totalq" --full
+
+months=$($psql "SELECT months_between('$actual_start', '$actual_end')")
+info -n "average monthly spending ($months months in period):"
+$psql "select
+  round(total_spent/$months, 2) from ($totalq) as total
+"
+
