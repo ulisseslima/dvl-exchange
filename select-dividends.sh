@@ -12,13 +12,11 @@ source $(real require.sh)
 
 psql=$MYDIR/psql.sh
 
-plot="'plot:brl'"
-dividends_tax=30
-
 and="1=1"
-ticker="2=2"
-# order_by='max(op.created)'
-order_by='total desc'
+brand="2=2"
+grouping=product.id
+#ordering='total_amount desc'
+ordering='total_spent desc'
 
 start="(now()::date - interval '1 month')"
 end="CURRENT_TIMESTAMP"
@@ -26,20 +24,7 @@ end="CURRENT_TIMESTAMP"
 today="now()::date"
 this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
-
-# (case when op.currency = 'USD' then round((total*rate),2)::text else total::text end) as brl
-cols="ticker.id,
-  ticker.name,
-  op.id as op_id,
-  op.created,
-  round(op.value,2) as unit,
-  op.amount as amount,
-  op.total as total,
-  op.currency,
-  round(op.rate,2) as rate,
-  round((total*rate),2) as brl
-"
-group_by="op.id, ticker.id"
+simulation=false
 
 while test $# -gt 0
 do
