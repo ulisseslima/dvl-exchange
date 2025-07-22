@@ -16,8 +16,8 @@ CALLER=$(basename `readlink -f $0`)
 function failure() {
   local lineno=$1
   local msg=$2
-  echo "$(basename $0): Failed at $lineno: '$msg' - query:"
-  echo "$query"
+  >&2 echo "$(basename $0): Failed at $lineno: '$msg' - query:"
+  >&2 echo "$query"
 }
 trap 'failure ${LINENO} "$BASH_COMMAND"' ERR
 
