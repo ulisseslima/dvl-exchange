@@ -30,6 +30,7 @@ extra="'{}'"
 background=false
 schedule=true
 recurring=null
+installments=1
 
 while test $# -gt 0
 do
@@ -45,7 +46,7 @@ do
       shift
       currency="${1^^}"
     ;;
-    --expression|-x)
+    --expression)
       shift
       expression="$1"
     ;;
@@ -81,6 +82,10 @@ do
     --no-scheduler)
       schedule=false
     ;;
+    --installments|-x)
+      shift
+      installments=$1
+    ;;
     -*)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
@@ -93,10 +98,15 @@ done
 [[ -z "$created" ]] && created="$(now.sh -dt)"
 
 if [[ -n "$expression" ]]; then
-  price="${price} ${expression}"
-  amount="${amount} ${expression}"
+  price=$(op.sh "${price} ${expression}")
+  amount=$(op.sh "${amount} ${expression}")
 
-  echo "price: $price, amount: $amount"
+  info "price: $price, amount: $amount"
+fi
+
+price=$(op.sh "$price / $installments")
+if [[ "$installments" -gt 1 ]]; then
+  info "installments: $installments, cost per installment: $price"
 fi
 
 if [[ -n "$extra" ]]; then
@@ -125,7 +135,7 @@ product_id=$($query "select id from products where (name = '${product_name}' or 
 if [[ -z "$product_id" ]]; then
   info "creating new product: $product_name ($product_brand)"
   product_id=$($query "insert into products (name, brand, tags, extra, recurring) values ('$product_name', '$product_brand', '$ptags', $extra, $recurring) returning id")
-  echo "#$product_id"
+  >&2 echo "#$product_id"
 else
   original_product=$($query "select name, recurring from products where id = $product_id")
   recurring=$(echo "$original_product" | cut -d'|' -f2)
@@ -152,10 +162,15 @@ if [[ -z "$currency" ]]; then
   info "using last currency: $currency"
 fi
 
-id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created, hidden, simulation, tags)
-  select $store_id, $product_id, $amount, $price, '$currency', '$created', $hide, $simulation, '$tags'
-  returning id
-")
+# iterate over installments
+for i in $(seq 1 $installments); do
+  id=$($query "insert into product_ops (store_id, product_id, amount, price, currency, created, hidden, simulation, tags, installment)
+    select $store_id, $product_id, $amount, $price, '$currency', '$created', $hide, $simulation, '$tags', $i
+    returning id
+  ")
+
+  created=$(op.sh "('${created}'::date+interval '1 month')::date")
+done
 
 if [[ $schedule == true && $(nan.sh "$recurring") == false ]]; then
   info "scheduling new $product_name op for $recurring months in the future..."
