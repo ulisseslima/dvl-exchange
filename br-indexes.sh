@@ -154,6 +154,13 @@ do
   date=$(echo "$item" | jq -r .data)
   price=$(echo "$item" | jq -r .valor)
 
+  info "date: $date, price: $price"
+
+  if [[ -z "$date" || "$date" == "null" || -z "$price" || "$price" == "null" ]]; then
+    err "no data for range: $start to $end [$index_id]"
+    continue
+  fi
+
   if [[ "$date" == "$last_date" ]]; then
     info "skipping dupe $date"
     continue
