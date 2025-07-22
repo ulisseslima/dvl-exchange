@@ -12,11 +12,14 @@ source $(real require.sh)
 
 psql=$MYDIR/psql.sh
 
+plot="'plot:brl'"
+dividends_tax=30 # US dividends tax%
+
 and="1=1"
+ticker="2=2"
 brand="2=2"
-grouping=product.id
-#ordering='total_amount desc'
-ordering='total_spent desc'
+group_by="op.id, ticker.id"
+order_by='max(op.created)'
 
 start="(now()::date - interval '1 month')"
 end="CURRENT_TIMESTAMP"
@@ -25,6 +28,18 @@ today="now()::date"
 this_month=$(now.sh -m)
 kotoshi=$(now.sh -y)
 simulation=false
+
+cols="ticker.id,
+  ticker.name,
+  op.id as op_id,
+  op.created,
+  round(op.value,2) as unit,
+  op.amount as amount,
+  op.total as total,
+  op.currency,
+  round(op.rate,2) as rate,
+  round((total*rate),2) as brl
+"
 
 while test $# -gt 0
 do
@@ -40,6 +55,8 @@ do
         ticker="ticker.name ilike '$1%'"
         ticker_id=$($psql "select id from tickers where name ilike '${1}%' limit 1")
         ticker_name=$($psql "select name from tickers where name ilike '${1}%' limit 1")
+
+        group_by="op.id, ticker.id"
     ;;
     --currency|-c)
         shift
@@ -154,8 +171,12 @@ do
     shift
 done
 
+require cols 'specify columns to select'
+require group_by 'specify group by'
+require order_by 'specify order by'
+
 interval="$start and $end"
-info "dividends between $($psql "select $start") and $($psql "select $end"), grouping by $group_by (order by $order_by)"
+info "dividends between $($psql "select $start") and $($psql "select $end"), grouping by '$group_by' (order by '$order_by')"
 
 filters="$and and $ticker"
 
