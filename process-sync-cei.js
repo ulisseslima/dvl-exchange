@@ -137,16 +137,22 @@ async function processRevSplit(client, movimentacao, item, ticker) {
 	let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
 	let asset = assets.rows[0]
 
+    let matches = await client.query(`
+		select count(id) from splits
+		where asset_id = $1
+        and created = $2
+	`, [asset.id, item.data])
+
+    if (matches.rows[0].count > 0) {
+		console.log("	└ rev split already saved")
+		return
+	}
+
 	let amount_query = await client.query(`
 		select amount from assets
 		where id = $1
 	`, [asset.id])
 	let amount = amount_query.rows[0].amount
-
-	if (amount == new_amount) {
-		console.log("	└ reverse split already saved")
-		return
-	}
 
 	console.log(`current amount: ${amount}`)
 	await client.query(
@@ -157,9 +163,9 @@ async function processRevSplit(client, movimentacao, item, ticker) {
 
 	await client.query(`
 		insert into splits 
-		(asset_id, ticker_id, old_amount, new_amount, reverse) 
-		values ($1, $2, $3, $4, $5)
-	`, [asset.id, ticker.id, amount, new_amount, (new_amount < amount)]
+		(asset_id, ticker_id, old_amount, new_amount, reverse, created) 
+		values ($1, $2, $3, $4, $5, $6)
+	`, [asset.id, ticker.id, amount, new_amount, (new_amount < amount), item.data]
 	)
 	console.log(`	└- ${BgCyan}${FgRed}reverse split registered from ${amount} to ${new_amount}${Reset}`)
 
@@ -175,21 +181,27 @@ async function processRevSplit(client, movimentacao, item, ticker) {
 async function processSplit(client, movimentacao, item, ticker) {
 	console.log(`	* processing split for ticker #${ticker.id} >`)
 	// desdobro: the amount represents the difference. current+quantidade=new amount
-	let new_amount = (amount + (movimentacao.quantidade))
 
 	let assets = await client.query(`select id from assets where ticker_id = $1`, [ticker.id])
 	let asset = assets.rows[0]
+
+    let matches = await client.query(`
+		select count(id) from splits
+		where asset_id = $1
+        and created = $2
+	`, [asset.id, item.data])
+
+    if (matches.rows[0].count > 0) {
+		console.log("	└ split already saved")
+		return
+	}
 
 	let amount_query = await client.query(`
 		select amount from assets
 		where id = $1
 	`, [asset.id])
-	let amount = amount_query.rows[0].amount
-
-	if (amount == new_amount) {
-		console.log("	└ split already saved")
-		return
-	}
+	let amount = parseInt(amount_query.rows[0].amount)
+    let new_amount = (amount + parseInt(movimentacao.quantidade))
 
 	console.log(`current amount: ${amount}`)
 	await client.query(
@@ -200,11 +212,11 @@ async function processSplit(client, movimentacao, item, ticker) {
 
 	await client.query(`
 		insert into splits 
-		(asset_id, ticker_id, old_amount, new_amount, reverse) 
-		values ($1, $2, $3, $4, $5)
-	`, [asset.id, ticker.id, amount, new_amount, (new_amount < amount)]
+		(asset_id, ticker_id, old_amount, new_amount, reverse, created) 
+		values ($1, $2, $3, $4, $5, $6)
+	`, [asset.id, ticker.id, amount, new_amount, (new_amount < amount), item.data]
 	)
-	console.log(`	└- ${BgCyan}${FgBlue}split registered from ${amount} + ${movimentacao.quantidade} to ${new_amount}${Reset}`)
+	console.log(`	└- ${BgCyan}${FgBlue}split registered from ${amount} to ${new_amount} (+${movimentacao.quantidade})${Reset}`)
 
 	await client.query(`
 		insert into asset_ops 
