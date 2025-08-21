@@ -104,7 +104,7 @@ if [[ -n "$expression" ]]; then
   info "price: $price, amount: $amount"
 fi
 
-price=$(op.sh "$price / $installments")
+price=$(op.sh "round($price / $installments, 2)")
 if [[ "$installments" -gt 1 ]]; then
   info "installments: $installments, cost per installment: $price"
 fi
@@ -169,11 +169,13 @@ for i in $(seq 1 $installments); do
     returning id
   ")
 
-  created=$(op.sh "('${created}'::date+interval '1 month')::date")
+  if [[ $installments != 1 ]]; then
+    created=$(op.sh "('${created}'::date+interval '1 month')::date")
+  fi
 done
 
 if [[ $schedule == true && $(nan.sh "$recurring") == false ]]; then
-  info "scheduling new $product_name op for $recurring months in the future..."
+  info "[$created] scheduling new $product_name op for $recurring months in the future..."
   next_recurrence=$(op.sh "('${created}'::date+interval '$recurring months')::date")
   >&2 echo "$next_recurrence"
 
