@@ -14,6 +14,7 @@ psql=$MYDIR/psql.sh
 
 product="$1"
 require product 'product line as it appears in the receipt'
+shift
 
 created="$(now.sh -dt)"
 
@@ -65,7 +66,7 @@ do
       shift
       product_name="$1"
     ;;
-    -*)
+    *)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;

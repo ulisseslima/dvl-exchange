@@ -132,7 +132,7 @@ do
       start="('$day_one_otm'::date - interval '$n months')"
       end="('$day_one_otm'::date)"
     ;;
-    -*)
+    *)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;

@@ -118,7 +118,7 @@ do
         cols="i.public_id,institution_id,sum(amount) as contribution"
         grouping="op.institution_id,i.id"
     ;;
-    -*)
+    *)
         echo "$(sh_name $ME) - bad option '$1'"
         exit 1
     ;;

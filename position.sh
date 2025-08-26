@@ -95,7 +95,7 @@ do
       curr_val desc,
       n desc"
     ;;
-    -*)
+    *)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;

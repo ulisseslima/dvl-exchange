@@ -32,7 +32,7 @@ do
         shift
         avg="$1"
     ;;
-    -*)
+    *)
         echo "$(sh_name $ME) - bad option '$1'"
         exit 1
     ;;

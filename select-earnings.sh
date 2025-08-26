@@ -148,7 +148,7 @@ do
         shift
         order_by="$1"
     ;;
-    -*)
+    *)
         echo "$0 - bad option '$1'"
         exit 1
     ;;

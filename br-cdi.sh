@@ -27,7 +27,7 @@ do
       shift
       percent_variation="$1"
     ;;
-    -*)
+    *)
       echo "bad option '$1'"
       exit 1
     ;;

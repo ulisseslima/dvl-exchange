@@ -165,7 +165,7 @@ do
             group_by="$grouping,ticker.id"
         fi
     ;;
-    -*)
+    *)
         echo "$(sh_name $ME) - bad option '$1'"
         exit 1
     ;;

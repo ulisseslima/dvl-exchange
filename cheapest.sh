@@ -96,7 +96,7 @@ do
         max(snap.currency) currency
       "
     ;;
-    -*)
+    *)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;

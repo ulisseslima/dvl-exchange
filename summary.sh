@@ -50,7 +50,7 @@ do
       --simulation|--sim)
         simulation=true
       ;;
-      -*)
+      *)
         echo "$(sh_name $ME) - bad option '$1'"
         exit 1
       ;;

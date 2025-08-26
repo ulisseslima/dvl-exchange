@@ -14,6 +14,7 @@ psql=$MYDIR/psql.sh
 
 product="$1"
 require product 'product line as it appears in the receipt'
+shift
 
 limit=5
 
@@ -61,7 +62,7 @@ do
       shift
       limit="$1"
     ;;
-    -*)
+    *)
       echo "$(sh_name $ME) - bad option '$1'"
       exit 1
     ;;

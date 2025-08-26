@@ -49,7 +49,7 @@ do
     --all|-a)
         filter="'2000-01-01'"
     ;;
-    -*)
+    *)
         echo "$(sh_name $ME) - bad option '$1'"
         exit 1
     ;;

@@ -13,6 +13,7 @@ psql=$MYDIR/psql.sh
 
 query="$1"
 require query
+shift
 debug "original query: $query"
 
 chart_resolution=10
@@ -28,7 +29,7 @@ do
         shift
         chart_resolution=$1
     ;;
-    -*)
+    *)
         echo "$(sh_name $ME) - bad option '$1'"
         exit 1
     ;;
