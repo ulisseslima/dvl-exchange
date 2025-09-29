@@ -106,6 +106,11 @@ do
         start="($today - interval '1 week')"
         end="($today + interval '1 day')"
     ;;
+    --between)
+        start="'$2'"
+        end="'$3'"
+        shift; shift
+    ;;
     --width)
         shift
         max_width=$1
@@ -215,7 +220,7 @@ if [[ -z "$category_filter" ]]; then
       store.category,
       round(sum(op.price), 2) as total_spent,
       round(sum(op.amount), 2) as total_amount,
-      (array_agg(distinct product.name))[1:2] as examples
+      (array_agg(distinct product.name))[1:3] as examples
     from product_ops op
     join products product on product.id=op.product_id
     join stores store on store.id=op.store_id
@@ -243,6 +248,9 @@ and $brand
 $psql "$totalq" --full
 
 months=$($psql "SELECT months_between('$actual_start', '$actual_end')")
+if [[ $months -lt 1 ]]; then
+  months=1
+fi
 info -n "average monthly spending ($months months in period):"
 $psql "select
   round(total_spent/$months, 2) from ($totalq) as total
