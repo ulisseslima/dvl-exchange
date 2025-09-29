@@ -123,7 +123,7 @@ $query "select
   and $store
   and $and
   $simulation
-order by $similarity desc, op.created desc, op.id desc 
+order by op.created desc, $similarity desc, op.id desc
 limit $limit" --full
 
 info "cheapest buys:"
