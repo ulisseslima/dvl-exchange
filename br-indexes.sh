@@ -68,6 +68,7 @@ SELIC=4390
 
 index=${1^^}
 require index "arg1: index name"
+shift
 
 index_id=${!index}
 require index_id "index ID"
