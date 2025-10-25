@@ -26,3 +26,4 @@ package*.json
 hs_err_pid*
 
 samples
+.specstory
