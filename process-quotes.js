@@ -35,6 +35,11 @@ let quotes = JSON.parse(json).body
 		let results = await client.query(`select id from tickers where name ilike $1 limit 1`, [quote.symbol+"%"])
 		let row = results.rows[0]
 		if (row && row.id) {
+			if (!quote.regularMarketPrice) {
+				console.log(`└ ??? no price for ${quote.symbol}, skipping`)
+				continue
+			}
+			
 			let tickerId = row.id
 	
 			await client.query(
