@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Charts Server",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/charts",
+      "console": "integratedTerminal",
+      "preLaunchTask": "nvm use",
+      "runtimeExecutable": "/home/ulisses/.nvm/versions/node/v20.19.5/bin/node",
+      "program": "${workspaceFolder}/charts/src/server.js",
+      "envFile": "${workspaceFolder}/charts/.env",
+      "env": {
+        "PORT": "3002"
+      }
+    }
+  ]
+}
