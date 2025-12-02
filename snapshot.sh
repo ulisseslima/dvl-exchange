@@ -5,6 +5,10 @@ MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
 
+# Initialize nvm for cron
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
 source $MYDIR/env.sh
 [[ -f $LOCAL_ENV ]] && source $LOCAL_ENV
 source $MYDIR/log.sh
