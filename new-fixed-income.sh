@@ -1,6 +1,6 @@
 #!/bin/bash -e
 # @installable
-# adds a new fixed-income operation
+# adds a new fixed-income operation. use for new investments or apports.
 MYSELF="$(readlink -f "$0")"
 MYDIR="${MYSELF%/*}"
 ME=$(basename $MYSELF)
