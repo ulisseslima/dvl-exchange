@@ -19,6 +19,11 @@ fi
 
 store_name="${1^^}";      require --nan store_name; shift
 product_name="${1^^}";    require --nan product_name; shift
+# sanitize `product_name` to avoid SQL/shell parse issues
+# replace ASCII double quote (") with right double quotation mark (U+201D)
+product_name="${product_name//\"/”}"
+# replace ASCII single quote (') with right single quotation mark (U+2019)
+product_name="${product_name//\'/’}"
 product_brand="${1^^}";   require --nan product_brand; shift
 # input 0 to load the last amount purchased for this product
 amount="$1";              require -nx amount; shift
