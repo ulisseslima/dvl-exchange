@@ -83,20 +83,10 @@ if [[ -z "$(echo "$result" | tr -d '[:space:]')" ]]; then
   exit 0
 fi
 
-if command -v notify-send >/dev/null 2>&1; then
-  notify_cmd="notify-send"
-else
-  notify_cmd="echo"
-fi
-
 while IFS="|" read -r name now_price min_price currency; do
   body="now: $now_price — min: $min_price $currency"
-  if [[ "$notify_cmd" == "notify-send" ]]; then
-    notify-send "Lowest price: $name" "$body"
+    notify.sh "Lowest price: $name" "$body" >/dev/null 2>&1 || info "notify-send failed for $name"
     info "Sent notification for $name: $body"
-  else
-    echo "LOWEST: $name - $body"
-  fi
 done <<< "$result"
 
 exit 0
