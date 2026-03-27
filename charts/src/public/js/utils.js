@@ -15,6 +15,11 @@ function exportCSV(cols, rows, filename='export.csv'){
 function renderTable(container, cols, rows){
   const wrap = typeof container === 'string' ? document.getElementById(container) : container
   wrap.innerHTML = ''
+  if (window.renderMaterialTable) {
+    window.renderMaterialTable(wrap, cols, rows)
+    return
+  }
+  // fallback (app.js not loaded)
   const table = document.createElement('table'); table.className='striped responsive-table'
   const thead = document.createElement('thead'); const thr = document.createElement('tr')
   cols.forEach(c=>{const th=document.createElement('th'); th.textContent=c; thr.appendChild(th)})

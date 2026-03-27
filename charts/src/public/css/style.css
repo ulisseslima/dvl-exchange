@@ -13,3 +13,14 @@ input,select{margin-left:6px}
 .btn:disabled{opacity:0.5;cursor:not-allowed}
 .export{background:#28a745}
 
+/* Excel-like table selection */
+.material-table-wrap{position:relative}
+.results-table td, .responsive-table td{cursor:cell;user-select:none;-webkit-user-select:none}
+.results-table th, .responsive-table th{user-select:none;-webkit-user-select:none}
+td.cell-selected{background:#cce4ff !important;outline:1px solid #6bb5ff}
+th.cell-selected{background:#b8d8ff !important}
+.row-select-icon{width:18px;min-width:18px;max-width:18px;text-align:center;cursor:pointer;color:#888;padding:4px 2px !important;font-size:11px}
+.row-select-icon:hover{color:#007acc;background:#e8f0fe}
+.row-select-hdr{width:18px;min-width:18px;max-width:18px;padding:4px 2px !important}
+.table-status-bar{min-height:22px;padding:4px 8px;font-size:12px;color:#444;background:#f5f5f5;border:1px solid #e3e3e3;border-top:none;font-family:monospace}
+
