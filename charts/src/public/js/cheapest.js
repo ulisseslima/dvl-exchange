@@ -1,13 +1,17 @@
-import { initTickerExclude, initFilterPersistence } from '/js/utils.js'
+import { initTickerExclude, initValueFilter, initFilterPersistence } from '/js/utils.js'
 
 document.addEventListener('DOMContentLoaded', async function(){
   var elems = document.querySelectorAll('select');
   if (window.M) M.FormSelect.init(elems);
 
   const { getExcluded, setExcluded } = await initTickerExclude('ticker-exclude')
+  const vf = initValueFilter('value-filter')
   const saveFilters = initFilterPersistence('cheapest', {
-    getExtra: () => ({ excludeTickerIds: getExcluded() }),
-    onRestore: (data) => { if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds) }
+    getExtra: () => ({ excludeTickerIds: getExcluded(), valueFilters: vf.getFilters() }),
+    onRestore: (data) => {
+      if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds)
+      if (data.valueFilters) vf.setFilters(data.valueFilters)
+    }
   })
 
   const runBtn = document.getElementById('run-cheap')
@@ -33,6 +37,9 @@ document.addEventListener('DOMContentLoaded', async function(){
       return
     }
 
+    vf.updateColumns(cols)
+    const filtered = vf.applyToRows(cols, rows)
+
     // populate currency select from distinct currency column values (case-insensitive match)
     const lowerCols = cols.map(c => String(c).toLowerCase())
     const currencyIdx = lowerCols.indexOf('currency')
@@ -47,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     }
 
     // render table (table placed after primary chart)
-    renderMaterialTable(results, cols, rows)
+    renderMaterialTable(results, cols, filtered)
 
     // populate column selector for single-column chart
     const colSelect = document.getElementById('cheap-col')
@@ -55,9 +62,9 @@ document.addEventListener('DOMContentLoaded', async function(){
     cols.forEach((c, idx) => { const o = document.createElement('option'); o.value = idx; o.textContent = c; colSelect.appendChild(o) })
     if (window.M) M.FormSelect.init(colSelect)
     // ensure listeners use assignment to avoid duplicate handlers
-    colSelect.onchange = () => drawCheapChart(cols, rows)
+    colSelect.onchange = () => drawCheapChart(cols, filtered)
     const typeSel = document.getElementById('cheap-chart-type')
-    typeSel.onchange = () => drawCheapChart(cols, rows)
+    typeSel.onchange = () => drawCheapChart(cols, filtered)
 
     // build multi-column controls
     const multiColsWrap = document.getElementById('multi-cols')
@@ -70,7 +77,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       const sample = rows[0] && rows[0][idx]
       // try to detect numeric column by attempting parseFloat on first non-null value
       let isNumeric = false
-      for (let i=0;i<rows.length;i++){ const v = rows[i][idx]; if (v!==null && v!==undefined){ if (typeof v === 'number' || !isNaN(parseFloat(String(v).replace(/[^0-9.-]+/g,'')))) isNumeric = true; break } }
+      for (let i=0;i<filtered.length;i++){ const v = filtered[i][idx]; if (v!==null && v!==undefined){ if (typeof v === 'number' || !isNaN(parseFloat(String(v).replace(/[^0-9.-]+/g,'')))) isNumeric = true; break } }
       if (!isNumeric) return
       const id = 'multi-col-' + idx
       const wrapper = document.createElement('label')
@@ -79,17 +86,17 @@ document.addEventListener('DOMContentLoaded', async function(){
       const span = document.createElement('span'); span.textContent = ' ' + c
       wrapper.appendChild(input); wrapper.appendChild(span)
       multiColsWrap.appendChild(wrapper)
-      input.addEventListener('change', ()=> drawMultiChart(cols, rows))
+      input.addEventListener('change', ()=> drawMultiChart(cols, filtered))
     })
 
     // init multi-type select
     const multiType = document.getElementById('cheap-multi-type')
     if (window.M) M.FormSelect.init(multiType)
-    multiType.onchange = () => drawMultiChart(cols, rows)
+    multiType.onchange = () => drawMultiChart(cols, filtered)
 
     // draw initial charts
-    drawCheapChart(cols, rows)
-    drawMultiChart(cols, rows)
+    drawCheapChart(cols, filtered)
+    drawMultiChart(cols, filtered)
   })
 
   function drawCheapChart(cols, rows){

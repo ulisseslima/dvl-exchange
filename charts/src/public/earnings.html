@@ -52,8 +52,17 @@
       <div class="row">
         <div class="col s12" id="ticker-exclude"></div>
       </div>
+      <div class="row">
+        <div class="col s12" id="institution-exclude"></div>
+      </div>
       <div class="row" style="margin-bottom:0">
         <div class="col s12" id="presets-panel"></div>
+      </div>
+      <div class="row">
+        <div class="col s12" id="value-filter"></div>
+      </div>
+      <div class="row">
+        <div class="col s12" id="group-by-filter"></div>
       </div>
       <div class="row">
         <div class="col s12"><button id="run-earn" class="btn waves-effect waves-light">Run Earnings</button></div>
@@ -66,14 +75,22 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script type="module">
-  import { apiPost, renderTable, drawChart, initTickerExclude, initFilterPersistence } from '/js/utils.js'
+  import { apiPost, renderTable, drawChart, initTickerExclude, initInstitutionExclude, initValueFilter, initGroupBy, initFilterPersistence } from '/js/utils.js'
 
   document.addEventListener('DOMContentLoaded', async () => {
     M.FormSelect.init(document.querySelectorAll('select'))
     const { getExcluded, setExcluded } = await initTickerExclude('ticker-exclude')
+    const { getExcluded: getExcludedInst, setExcluded: setExcludedInst } = await initInstitutionExclude('institution-exclude')
+    const vf = initValueFilter('value-filter')
+    const gb = initGroupBy('group-by-filter')
     const saveFilters = initFilterPersistence('earnings', {
-      getExtra: () => ({ excludeTickerIds: getExcluded() }),
-      onRestore: (data) => { if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds) }
+      getExtra: () => ({ excludeTickerIds: getExcluded(), excludeInstitutions: getExcludedInst(), valueFilters: vf.getFilters(), groupBy: gb.getConfig() }),
+      onRestore: (data) => {
+        if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds)
+        if (data.excludeInstitutions && data.excludeInstitutions.length) setExcludedInst(data.excludeInstitutions)
+        if (data.valueFilters) vf.setFilters(data.valueFilters)
+        if (data.groupBy) gb.setConfig(data.groupBy)
+      }
     })
 
     document.getElementById('run-earn').addEventListener('click', async () => {
@@ -92,17 +109,23 @@
       if (source) body.source = source
       const ex = getExcluded()
       if (ex.length) body.excludeTickerIds = ex
+      const exInst = getExcludedInst()
+      if (exInst.length) body.excludeInstitutions = exInst
       saveFilters()
 
       const j = await apiPost('/api/earnings', body)
       const cols = j.columns || []
       const rows = j.rows || []
-      renderTable(document.getElementById('results'), cols, rows)
+      vf.updateColumns(cols)
+      gb.updateColumns(cols)
+      const filtered = vf.applyToRows(cols, rows)
+      const { cols: outCols, rows: outRows } = gb.applyToRows(cols, filtered)
+      renderTable(document.getElementById('results'), outCols, outRows)
 
-      if (cols.length > 1 && rows.length > 0) {
-        const brlIdx = cols.indexOf('brl') !== -1 ? cols.indexOf('brl') : cols.indexOf('total')
-        const labelIdx = cols.indexOf('institution') !== -1 ? cols.indexOf('institution') : 0
-        if (brlIdx !== -1) drawChart('chart', cols, rows, labelIdx, brlIdx, 'bar')
+      if (outCols.length > 1 && outRows.length > 0) {
+        const brlIdx = outCols.indexOf('brl') !== -1 ? outCols.indexOf('brl') : outCols.indexOf('total')
+        const labelIdx = outCols.indexOf('institution') !== -1 ? outCols.indexOf('institution') : 0
+        if (brlIdx !== -1) drawChart('chart', outCols, outRows, labelIdx, brlIdx, 'bar')
       }
     })
   })

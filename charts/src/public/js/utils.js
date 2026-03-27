@@ -146,6 +146,290 @@ function initFilterPersistence(pageKey, extraHooks = {}) {
   }
 }
 
+// Value filter component — client-side column/operator/value filters applied to result rows.
+// containerId: ID of the div to render into.
+// Returns { applyToRows(cols, rows), getFilters(), setFilters(arr), updateColumns(cols) }
+function initValueFilter(containerId) {
+  const container = document.getElementById(containerId)
+  if (!container) return {
+    applyToRows: (_c, rows) => rows,
+    getFilters: () => [],
+    setFilters: () => {},
+    updateColumns: () => {}
+  }
+
+  let activeFilters = [] // [{col, op, val}]
+  let knownCols = []
+
+  const OPS = [
+    { value: '<',  label: '< (lt)' },
+    { value: '<=', label: '≤ (lte)' },
+    { value: '==', label: '== (eq)' },
+    { value: '!=', label: '≠ (ne)' },
+    { value: '>=', label: '≥ (gte)' },
+    { value: '>',  label: '> (gt)' },
+    { value: '~',  label: '~ (contains)' },
+  ]
+
+  container.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0">
+      <span class="grey-text text-darken-1" style="font-size:13px;white-space:nowrap">Value filters:</span>
+      <select id="_vf_col" class="browser-default" style="height:32px;padding:0 4px;border:1px solid #bbb;border-radius:4px;min-width:120px;font-size:13px">
+        <option value="">— column —</option>
+      </select>
+      <select id="_vf_op" class="browser-default" style="height:32px;padding:0 4px;border:1px solid #bbb;border-radius:4px;font-size:13px">
+        ${OPS.map(o => `<option value="${o.value}">${o.label}</option>`).join('')}
+      </select>
+      <input id="_vf_val" placeholder="value" style="height:32px;padding:0 6px;border:1px solid #bbb;border-radius:4px;width:110px;font-size:13px;margin:0">
+      <button id="_vf_add" class="btn-small btn waves-effect waves-light" style="height:32px;line-height:32px;margin:0">Add</button>
+      <button id="_vf_clear" class="btn-small btn red lighten-1 waves-effect waves-light" style="height:32px;line-height:32px;margin:0">Clear</button>
+      <div id="_vf_chips" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center"></div>
+    </div>`
+
+  function _populateCols() {
+    const sel = container.querySelector('#_vf_col')
+    if (!sel) return
+    const cur = sel.value
+    sel.innerHTML = '<option value="">— column —</option>'
+    knownCols.forEach(c => {
+      const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o)
+    })
+    if (cur) sel.value = cur
+  }
+
+  function _renderChips() {
+    const chips = container.querySelector('#_vf_chips')
+    if (!chips) return
+    chips.innerHTML = ''
+    const opLabel = { '<': '<', '<=': '≤', '==': '==', '!=': '≠', '>=': '≥', '>': '>', '~': '~' }
+    activeFilters.forEach((f, i) => {
+      const chip = document.createElement('div')
+      chip.className = 'chip'
+      chip.style.margin = '2px 0'
+      chip.textContent = `${f.col} ${opLabel[f.op] || f.op} ${f.val} `
+      const close = document.createElement('i')
+      close.className = 'close material-icons'
+      close.textContent = 'close'
+      close.style.cursor = 'pointer'
+      close.addEventListener('click', () => { activeFilters.splice(i, 1); _renderChips() })
+      chip.appendChild(close)
+      chips.appendChild(chip)
+    })
+  }
+
+  container.querySelector('#_vf_add').addEventListener('click', () => {
+    const col = container.querySelector('#_vf_col').value
+    const op  = container.querySelector('#_vf_op').value
+    const val = container.querySelector('#_vf_val').value.trim()
+    if (!col || !val) return
+    activeFilters.push({ col, op, val })
+    _renderChips()
+  })
+  container.querySelector('#_vf_clear').addEventListener('click', () => { activeFilters = []; _renderChips() })
+
+  function applyToRows(cols, rows) {
+    if (!activeFilters.length) return rows
+    return rows.filter(row => activeFilters.every(f => {
+      const ci = cols.indexOf(f.col)
+      if (ci === -1) return true
+      const cellStr = row[ci] == null ? '' : String(row[ci])
+      if (f.op === '~') return cellStr.toLowerCase().includes(f.val.toLowerCase())
+      const cellNum = parseFloat(String(row[ci] == null ? '' : row[ci]).replace(/[^0-9.-]+/g, ''))
+      const valNum  = parseFloat(f.val)
+      if (!isNaN(cellNum) && !isNaN(valNum)) {
+        if (f.op === '<')  return cellNum < valNum
+        if (f.op === '<=') return cellNum <= valNum
+        if (f.op === '==') return cellNum === valNum
+        if (f.op === '!=') return cellNum !== valNum
+        if (f.op === '>=') return cellNum >= valNum
+        if (f.op === '>')  return cellNum > valNum
+      }
+      if (f.op === '==') return cellStr === f.val
+      if (f.op === '!=') return cellStr !== f.val
+      return true
+    }))
+  }
+
+  function updateColumns(cols) { knownCols = cols || []; _populateCols() }
+  function getFilters() { return activeFilters.map(f => ({ ...f })) }
+  function setFilters(arr) { activeFilters = Array.isArray(arr) ? arr.map(f => ({ ...f })) : []; _renderChips() }
+
+  return { applyToRows, getFilters, setFilters, updateColumns }
+}
+
+// Group-by component — client-side aggregation of result rows by a chosen column.
+// containerId: ID of the div to render into.
+// Returns { applyToRows(cols, rows) -> {cols, rows}, getConfig(), setConfig(cfg), updateColumns(cols) }
+function initGroupBy(containerId) {
+  const container = document.getElementById(containerId)
+  if (!container) return {
+    applyToRows: (cols, rows) => ({ cols, rows }),
+    getConfig: () => ({}),
+    setConfig: () => {},
+    updateColumns: () => {}
+  }
+
+  let groupByCol = ''
+  let knownCols = []
+
+  container.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:4px 0">
+      <span class="grey-text text-darken-1" style="font-size:13px;white-space:nowrap">Group by:</span>
+      <select id="_gb_col" class="browser-default" style="height:32px;padding:0 4px;border:1px solid #bbb;border-radius:4px;min-width:120px;font-size:13px">
+        <option value="">— none —</option>
+      </select>
+    </div>`
+
+  container.querySelector('#_gb_col').addEventListener('change', e => { groupByCol = e.target.value })
+
+  function _populateCols() {
+    const sel = container.querySelector('#_gb_col')
+    if (!sel) return
+    sel.innerHTML = '<option value="">— none —</option>'
+    knownCols.forEach(c => {
+      const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o)
+    })
+    if (groupByCol) sel.value = groupByCol
+  }
+
+  function applyToRows(cols, rows) {
+    if (!groupByCol) return { cols, rows }
+    const ci = cols.indexOf(groupByCol)
+    if (ci === -1) return { cols, rows }
+
+    const otherIndices = cols.map((_, i) => i).filter(i => i !== ci)
+
+    // Detect numeric columns
+    const isNumeric = {}
+    otherIndices.forEach(i => {
+      isNumeric[i] = rows.some(r => {
+        const v = r[i]
+        if (v === null || v === undefined || v === '') return false
+        return typeof v === 'number' || !isNaN(parseFloat(String(v).replace(/[^0-9.-]+/g, '')))
+      })
+    })
+
+    // Group rows by key
+    const groups = new Map()
+    rows.forEach(row => {
+      const key = row[ci] == null ? '' : String(row[ci])
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key).push(row)
+    })
+
+    const outCols = [groupByCol, 'count', ...otherIndices.map(i => cols[i])]
+    const outRows = []
+    groups.forEach((groupRows, key) => {
+      const agg = otherIndices.map(i => {
+        if (isNumeric[i]) {
+          const sum = groupRows.reduce((acc, r) => {
+            const v = r[i]
+            const n = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(/[^0-9.-]+/g, ''))
+            return acc + (isNaN(n) ? 0 : n)
+          }, 0)
+          return Math.round(sum * 100) / 100
+        }
+        return groupRows[0][i]
+      })
+      outRows.push([key, groupRows.length, ...agg])
+    })
+
+    // Sort by count desc
+    outRows.sort((a, b) => b[1] - a[1])
+    return { cols: outCols, rows: outRows }
+  }
+
+  function updateColumns(cols) { knownCols = cols || []; _populateCols() }
+  function getConfig() { return { groupByCol } }
+  function setConfig(cfg) {
+    if (!cfg) return
+    groupByCol = cfg.groupByCol || ''
+    const sel = container.querySelector('#_gb_col')
+    if (sel) sel.value = groupByCol
+  }
+
+  return { applyToRows, getConfig, setConfig, updateColumns }
+}
+
+// Institution exclusion chip component (for earnings page)
+// containerId: ID of the div to render into
+// Returns { getExcluded, setExcluded }
+async function initInstitutionExclude(containerId) {
+  const container = document.getElementById(containerId)
+  if (!container) return { getExcluded: () => [], setExcluded: () => {} }
+
+  container.innerHTML = `
+    <div class="input-field" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <input type="text" id="_ie_input" class="autocomplete" placeholder="Type institution to exclude...">
+        <label for="_ie_input">Exclude Institutions</label>
+      </div>
+      <div id="_ie_chips" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+    </div>`
+
+  let institutions = []
+  try {
+    const res = await fetch('/api/institutions')
+    institutions = await res.json()
+  } catch (e) { console.error('Failed to load institutions', e) }
+
+  const excluded = new Map() // id -> display label
+  const chipsEl = container.querySelector('#_ie_chips')
+  const inputEl = container.querySelector('#_ie_input')
+
+  function renderChips() {
+    chipsEl.innerHTML = ''
+    excluded.forEach((label, id) => {
+      const chip = document.createElement('div')
+      chip.className = 'chip'
+      chip.textContent = label + ' '
+      const close = document.createElement('i')
+      close.className = 'close material-icons'
+      close.textContent = 'close'
+      close.style.cursor = 'pointer'
+      close.addEventListener('click', () => { excluded.delete(id); renderChips() })
+      chip.appendChild(close)
+      chipsEl.appendChild(chip)
+    })
+  }
+
+  const acData = {}
+  institutions.forEach(t => { acData[t.id] = null })
+
+  if (window.M && M.Autocomplete) {
+    M.Autocomplete.init(inputEl, {
+      data: acData,
+      onAutocomplete: function(val) {
+        const match = institutions.find(t => t.id === val)
+        if (match && !excluded.has(match.id)) { excluded.set(match.id, match.id); renderChips() }
+        inputEl.value = ''
+      }
+    })
+  } else {
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        const val = inputEl.value.trim().toLowerCase()
+        const match = institutions.find(t => t.id.toLowerCase().startsWith(val))
+        if (match && !excluded.has(match.id)) { excluded.set(match.id, match.id); renderChips() }
+        inputEl.value = ''
+      }
+    })
+  }
+
+  function getExcluded() { return Array.from(excluded.keys()) }
+  function setExcluded(ids) {
+    excluded.clear()
+    ids.forEach(id => {
+      const inst = institutions.find(t => t.id === id)
+      if (inst) excluded.set(inst.id, inst.id)
+    })
+    renderChips()
+  }
+
+  return { getExcluded, setExcluded }
+}
+
 // Ticker exclusion chip component
 // containerId: ID of the div to render into
 // Returns { getExcluded, setExcluded }
@@ -235,5 +519,18 @@ async function initTickerExclude(containerId) {
   return { getExcluded, setExcluded }
 }
 
-export { apiPost, exportCSV, renderTable, drawChart, populateSelect, collectFilters, applyFilters, initFilterPersistence, initTickerExclude }
+export { 
+  apiPost, 
+  exportCSV, 
+  renderTable, 
+  drawChart, 
+  populateSelect, 
+  collectFilters, 
+  applyFilters, 
+  initFilterPersistence, 
+  initTickerExclude, 
+  initInstitutionExclude, 
+  initValueFilter,
+  initGroupBy,
+}
 

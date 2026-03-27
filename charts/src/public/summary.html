@@ -44,6 +44,9 @@
       <div class="row" style="margin-bottom:0">
         <div class="col s12" id="presets-panel"></div>
       </div>
+      <div class="row">
+        <div class="col s12" id="value-filter"></div>
+      </div>
     </div>
 
     <div id="results"></div>
@@ -52,11 +55,15 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script type="module">
-  import { apiPost, renderTable, drawChart, initFilterPersistence } from '/js/utils.js'
+  import { apiPost, renderTable, drawChart, initValueFilter, initFilterPersistence } from '/js/utils.js'
 
   document.addEventListener('DOMContentLoaded', async () => {
     M.FormSelect.init(document.querySelectorAll('select'))
-    const saveFilters = initFilterPersistence('summary')
+    const vf = initValueFilter('value-filter')
+    const saveFilters = initFilterPersistence('summary', {
+      getExtra: () => ({ valueFilters: vf.getFilters() }),
+      onRestore: (data) => { if (data.valueFilters) vf.setFilters(data.valueFilters) }
+    })
 
     document.getElementById('run-sum').addEventListener('click', async () => {
       const range = document.getElementById('sum-range').value
@@ -71,12 +78,14 @@
       const j = await apiPost('/api/summary', body)
       const cols = j.columns || []
       const rows = j.rows || []
-      renderTable(document.getElementById('results'), cols, rows)
+      vf.updateColumns(cols)
+      const filtered = vf.applyToRows(cols, rows)
+      renderTable(document.getElementById('results'), cols, filtered)
 
-      if (cols.length > 1 && rows.length > 0) {
+      if (cols.length > 1 && filtered.length > 0) {
         const valueIdx = cols.indexOf('value') !== -1 ? cols.indexOf('value') : 2
         const labelIdx = cols.indexOf('currency') !== -1 ? cols.indexOf('currency') : 0
-        drawChart('chart', cols, rows, labelIdx, valueIdx, 'bar')
+        drawChart('chart', cols, filtered, labelIdx, valueIdx, 'bar')
       }
     })
   })

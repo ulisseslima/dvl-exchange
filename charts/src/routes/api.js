@@ -22,6 +22,16 @@ router.get('/tickers', async (req, res) => {
   }
 })
 
+router.get('/institutions', async (req, res) => {
+  try {
+    const result = await db.query('select id from institutions order by id')
+    res.json(result.rows)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: String(err) })
+  }
+})
+
 router.post('/cheapest', (req, res) => cheapestController.handle(req, res))
 router.post('/position', (req, res) => positionController.handle(req, res))
 router.post('/dividends', (req, res) => dividendsController.handle(req, res))

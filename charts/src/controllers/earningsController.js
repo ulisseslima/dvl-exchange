@@ -56,6 +56,13 @@ function buildQuery(opts = {}) {
     if (ids.length) excludeCond = `and institution.id not in (${ids.map(i => `'${i}'`).join(',')})`
   }
 
+  // Exclude specific institutions by their string ID
+  let excludeInstCond = ''
+  if (opts.excludeInstitutions && Array.isArray(opts.excludeInstitutions) && opts.excludeInstitutions.length) {
+    const ids = opts.excludeInstitutions.map(id => String(id).replace(/'/g, "''")).filter(Boolean)
+    if (ids.length) excludeInstCond = `and institution.id not in (${ids.map(i => `'${i}'`).join(',')})`
+  }
+
   const orderBy = opts.orderBy ? String(opts.orderBy) : 'op.created'
   const limit = Math.min(parseInt(opts.limit, 10) || 1000, 5000)
 
@@ -77,6 +84,7 @@ where op.created between ${interval}
 and ${andCond}
 and ${institutionCond}
 ${excludeCond}
+${excludeInstCond}
 group by op.id, institution.id
 order by ${orderBy}
 limit ${limit}`

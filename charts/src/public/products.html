@@ -70,6 +70,12 @@
         <div class="col s12" id="presets-panel"></div>
       </div>
       <div class="row">
+        <div class="col s12" id="value-filter"></div>
+      </div>
+      <div class="row">
+        <div class="col s12" id="group-by-filter"></div>
+      </div>
+      <div class="row">
         <div class="col s12"><button id="run-prod" class="btn waves-effect waves-light">Run Products</button></div>
       </div>
     </div>
@@ -80,14 +86,20 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script type="module">
-  import { apiPost, renderTable, drawChart, initTickerExclude, initFilterPersistence } from '/js/utils.js'
+  import { apiPost, renderTable, drawChart, initTickerExclude, initValueFilter, initGroupBy, initFilterPersistence } from '/js/utils.js'
 
   document.addEventListener('DOMContentLoaded', async () => {
     M.FormSelect.init(document.querySelectorAll('select'))
     const { getExcluded, setExcluded } = await initTickerExclude('ticker-exclude')
+    const vf = initValueFilter('value-filter')
+    const gb = initGroupBy('group-by-filter')
     const saveFilters = initFilterPersistence('products', {
-      getExtra: () => ({ excludeTickerIds: getExcluded() }),
-      onRestore: (data) => { if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds) }
+      getExtra: () => ({ excludeTickerIds: getExcluded(), valueFilters: vf.getFilters(), groupBy: gb.getConfig() }),
+      onRestore: (data) => {
+        if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds)
+        if (data.valueFilters) vf.setFilters(data.valueFilters)
+        if (data.groupBy) gb.setConfig(data.groupBy)
+      }
     })
 
     document.getElementById('run-prod').addEventListener('click', async () => {
@@ -121,12 +133,16 @@
       const j = await apiPost('/api/products', body)
       const cols = j.columns || []
       const rows = j.rows || []
-      renderTable(document.getElementById('results'), cols, rows)
+      vf.updateColumns(cols)
+      gb.updateColumns(cols)
+      const filtered = vf.applyToRows(cols, rows)
+      const { cols: outCols, rows: outRows } = gb.applyToRows(cols, filtered)
+      renderTable(document.getElementById('results'), outCols, outRows)
 
-      if (cols.length > 1 && rows.length > 0) {
-        const spentIdx = cols.indexOf('total_spent') !== -1 ? cols.indexOf('total_spent') : cols.length - 4
-        const labelIdx = cols.indexOf('product') !== -1 ? cols.indexOf('product') : 0
-        if (spentIdx > 0) drawChart('chart', cols, rows, labelIdx, spentIdx, 'bar')
+      if (outCols.length > 1 && outRows.length > 0) {
+        const spentIdx = outCols.indexOf('total_spent') !== -1 ? outCols.indexOf('total_spent') : outCols.length - 4
+        const labelIdx = outCols.indexOf('product') !== -1 ? outCols.indexOf('product') : 0
+        if (spentIdx > 0) drawChart('chart', outCols, outRows, labelIdx, spentIdx, 'bar')
       }
     })
   })
