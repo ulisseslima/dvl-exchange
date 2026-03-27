@@ -24,7 +24,7 @@
     <div class="card-panel">
       <div class="row">
         <div class="input-field col s3">
-          <select id="div-range">
+          <select id="div-range" data-filter="range">
             <option value="month">Month</option>
             <option value="all">All</option>
             <option value="today">Today</option>
@@ -34,17 +34,17 @@
           </select>
           <label>Range</label>
         </div>
-        <div class="input-field col s2"><input id="div-year" placeholder="2024"><label for="div-year">Year</label></div>
-        <div class="input-field col s2"><input id="div-month" placeholder="01"><label for="div-month">Month</label></div>
-        <div class="input-field col s2"><input id="div-ticker" placeholder="PETR4"><label for="div-ticker">Ticker</label></div>
-        <div class="input-field col s2"><input id="div-currency" placeholder="BRL"><label for="div-currency">Currency</label></div>
+        <div class="input-field col s2"><input id="div-year" data-filter="year" placeholder="2024"><label for="div-year">Year</label></div>
+        <div class="input-field col s2"><input id="div-month" data-filter="month" placeholder="01"><label for="div-month">Month</label></div>
+        <div class="input-field col s2"><input id="div-ticker" data-filter="ticker" placeholder="PETR4"><label for="div-ticker">Ticker</label></div>
+        <div class="input-field col s2"><input id="div-currency" data-filter="currency" placeholder="BRL"><label for="div-currency">Currency</label></div>
       </div>
       <div class="row">
         <div class="col s3" style="display:flex;align-items:center;padding-top:14px">
-          <label><input type="checkbox" id="div-group-ticker" /><span>Group by Ticker</span></label>
+          <label><input type="checkbox" id="div-group-ticker" data-filter="groupByTicker" /><span>Group by Ticker</span></label>
         </div>
         <div class="col s3" style="display:flex;align-items:center;padding-top:14px">
-          <label><input type="checkbox" id="div-group-month" /><span>Group by Month</span></label>
+          <label><input type="checkbox" id="div-group-month" data-filter="groupByMonth" /><span>Group by Month</span></label>
         </div>
         <div class="col s3" style="display:flex;align-items:center">
           <button id="run-div" class="btn waves-effect waves-light">Run Dividends</button>
@@ -52,6 +52,9 @@
       </div>
       <div class="row">
         <div class="col s12" id="ticker-exclude"></div>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <div class="col s12" id="presets-panel"></div>
       </div>
     </div>
 
@@ -61,11 +64,15 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script type="module">
-  import { apiPost, renderTable, drawChart, initTickerExclude } from '/js/utils.js'
+  import { apiPost, renderTable, drawChart, initTickerExclude, initFilterPersistence } from '/js/utils.js'
 
   document.addEventListener('DOMContentLoaded', async () => {
     M.FormSelect.init(document.querySelectorAll('select'))
-    const getExcluded = await initTickerExclude('ticker-exclude')
+    const { getExcluded, setExcluded } = await initTickerExclude('ticker-exclude')
+    const saveFilters = initFilterPersistence('dividends', {
+      getExtra: () => ({ excludeTickerIds: getExcluded() }),
+      onRestore: (data) => { if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds) }
+    })
 
     document.getElementById('run-div').addEventListener('click', async () => {
       const range = document.getElementById('div-range').value
@@ -85,6 +92,7 @@
       if (groupByMonth) body.groupByMonth = true
       const ex = getExcluded()
       if (ex.length) body.excludeTickerIds = ex
+      saveFilters()
 
       const j = await apiPost('/api/dividends', body)
       const cols = j.columns || []

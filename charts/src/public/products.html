@@ -24,7 +24,7 @@
     <div class="card-panel">
       <div class="row">
         <div class="input-field col s3">
-          <select id="prod-range">
+          <select id="prod-range" data-filter="range">
             <option value="month">Month</option>
             <option value="all">All</option>
             <option value="today">Today</option>
@@ -33,17 +33,17 @@
           </select>
           <label>Range</label>
         </div>
-        <div class="input-field col s2"><input id="prod-year" placeholder="2024"><label for="prod-year">Year</label></div>
-        <div class="input-field col s2"><input id="prod-name" placeholder="product"><label for="prod-name">Name</label></div>
-        <div class="input-field col s2"><input id="prod-store" placeholder="store"><label for="prod-store">Store</label></div>
-        <div class="input-field col s2"><input id="prod-category" placeholder="category"><label for="prod-category">Category</label></div>
+        <div class="input-field col s2"><input id="prod-year" data-filter="year" placeholder="2024"><label for="prod-year">Year</label></div>
+        <div class="input-field col s2"><input id="prod-name" data-filter="name" placeholder="product"><label for="prod-name">Name</label></div>
+        <div class="input-field col s2"><input id="prod-store" data-filter="store" placeholder="store"><label for="prod-store">Store</label></div>
+        <div class="input-field col s2"><input id="prod-category" data-filter="category" placeholder="category"><label for="prod-category">Category</label></div>
       </div>
       <div class="row">
-        <div class="input-field col s2"><input id="prod-brand" placeholder="brand"><label for="prod-brand">Brand</label></div>
-        <div class="input-field col s2"><input id="prod-tags" placeholder="tags"><label for="prod-tags">Tags</label></div>
-        <div class="input-field col s2"><input id="prod-like" placeholder="fuzzy search"><label for="prod-like">Like</label></div>
+        <div class="input-field col s2"><input id="prod-brand" data-filter="brand" placeholder="brand"><label for="prod-brand">Brand</label></div>
+        <div class="input-field col s2"><input id="prod-tags" data-filter="tags" placeholder="tags"><label for="prod-tags">Tags</label></div>
+        <div class="input-field col s2"><input id="prod-like" data-filter="like" placeholder="fuzzy search"><label for="prod-like">Like</label></div>
         <div class="input-field col s2">
-          <select id="prod-group">
+          <select id="prod-group" data-filter="groupBy">
             <option value="">Default (product)</option>
             <option value="store">Store</option>
             <option value="ops">Ops</option>
@@ -51,7 +51,7 @@
           <label>Group By</label>
         </div>
         <div class="input-field col s2">
-          <select id="prod-order">
+          <select id="prod-order" data-filter="orderBy">
             <option value="total_spent desc">Total Spent</option>
             <option value="total_amount desc">Total Amount</option>
             <option value="avg_unit_price desc">Avg Price</option>
@@ -60,11 +60,14 @@
           <label>Order</label>
         </div>
         <div class="col s1" style="display:flex;align-items:center;padding-top:14px">
-          <label><input type="checkbox" id="prod-sim" /><span>Sim</span></label>
+          <label><input type="checkbox" id="prod-sim" data-filter="sim" /><span>Sim</span></label>
         </div>
       </div>
       <div class="row">
         <div class="col s12" id="ticker-exclude"></div>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <div class="col s12" id="presets-panel"></div>
       </div>
       <div class="row">
         <div class="col s12"><button id="run-prod" class="btn waves-effect waves-light">Run Products</button></div>
@@ -77,11 +80,15 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script type="module">
-  import { apiPost, renderTable, drawChart, initTickerExclude } from '/js/utils.js'
+  import { apiPost, renderTable, drawChart, initTickerExclude, initFilterPersistence } from '/js/utils.js'
 
   document.addEventListener('DOMContentLoaded', async () => {
     M.FormSelect.init(document.querySelectorAll('select'))
-    const getExcluded = await initTickerExclude('ticker-exclude')
+    const { getExcluded, setExcluded } = await initTickerExclude('ticker-exclude')
+    const saveFilters = initFilterPersistence('products', {
+      getExtra: () => ({ excludeTickerIds: getExcluded() }),
+      onRestore: (data) => { if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds) }
+    })
 
     document.getElementById('run-prod').addEventListener('click', async () => {
       const range = document.getElementById('prod-range').value
@@ -109,6 +116,7 @@
       if (simulation) body.simulation = true
       const ex = getExcluded()
       if (ex.length) body.excludeTickerIds = ex
+      saveFilters()
 
       const j = await apiPost('/api/products', body)
       const cols = j.columns || []

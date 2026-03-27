@@ -1,10 +1,14 @@
-import { initTickerExclude } from '/js/utils.js'
+import { initTickerExclude, initFilterPersistence } from '/js/utils.js'
 
 document.addEventListener('DOMContentLoaded', async function(){
   var elems = document.querySelectorAll('select');
   if (window.M) M.FormSelect.init(elems);
 
-  const getExcluded = await initTickerExclude('ticker-exclude')
+  const { getExcluded, setExcluded } = await initTickerExclude('ticker-exclude')
+  const saveFilters = initFilterPersistence('cheapest', {
+    getExtra: () => ({ excludeTickerIds: getExcluded() }),
+    onRestore: (data) => { if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds) }
+  })
 
   const runBtn = document.getElementById('run-cheap')
   runBtn.addEventListener('click', async ()=>{
@@ -16,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async function(){
     if (short) body.short = true
     const ex = getExcluded()
     if (ex.length) body.excludeTickerIds = ex
+    saveFilters()
 
     const resp = await fetch('/api/cheapest', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
     const j = await resp.json()

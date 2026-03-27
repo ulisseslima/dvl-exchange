@@ -24,7 +24,7 @@
     <div class="card-panel">
       <div class="row">
         <div class="input-field col s3">
-          <select id="sum-range">
+          <select id="sum-range" data-filter="range">
             <option value="month">Month</option>
             <option value="all">All</option>
             <option value="today">Today</option>
@@ -33,13 +33,16 @@
           </select>
           <label>Range</label>
         </div>
-        <div class="input-field col s2"><input id="sum-year" placeholder="2024"><label for="sum-year">Year</label></div>
+        <div class="input-field col s2"><input id="sum-year" data-filter="year" placeholder="2024"><label for="sum-year">Year</label></div>
         <div class="col s2" style="display:flex;align-items:center;padding-top:14px">
-          <label><input type="checkbox" id="sum-sim" /><span>Simulation</span></label>
+          <label><input type="checkbox" id="sum-sim" data-filter="sim" /><span>Simulation</span></label>
         </div>
         <div class="col s2" style="display:flex;align-items:center">
           <button id="run-sum" class="btn waves-effect waves-light">Run</button>
         </div>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <div class="col s12" id="presets-panel"></div>
       </div>
     </div>
 
@@ -49,10 +52,11 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script type="module">
-  import { apiPost, renderTable, drawChart } from '/js/utils.js'
+  import { apiPost, renderTable, drawChart, initFilterPersistence } from '/js/utils.js'
 
   document.addEventListener('DOMContentLoaded', async () => {
     M.FormSelect.init(document.querySelectorAll('select'))
+    const saveFilters = initFilterPersistence('summary')
 
     document.getElementById('run-sum').addEventListener('click', async () => {
       const range = document.getElementById('sum-range').value
@@ -62,6 +66,7 @@
       const body = { range }
       if (year) body.year = year
       if (simulation) body.simulation = true
+      saveFilters()
 
       const j = await apiPost('/api/summary', body)
       const cols = j.columns || []

@@ -24,7 +24,7 @@
     <div class="card-panel">
       <div class="row">
         <div class="input-field col s3">
-          <select id="pos-range">
+          <select id="pos-range" data-filter="range">
             <option value="month">Month</option>
             <option value="all">All</option>
             <option value="today">Today</option>
@@ -33,21 +33,24 @@
           </select>
           <label>Range</label>
         </div>
-        <div class="input-field col s2"><input id="pos-year" placeholder="2024"><label for="pos-year">Year</label></div>
-        <div class="input-field col s2"><input id="pos-ticker" placeholder="PETR4"><label for="pos-ticker">Ticker</label></div>
-        <div class="input-field col s2"><input id="pos-currency" placeholder="BRL"><label for="pos-currency">Currency</label></div>
+        <div class="input-field col s2"><input id="pos-year" data-filter="year" placeholder="2024"><label for="pos-year">Year</label></div>
+        <div class="input-field col s2"><input id="pos-ticker" data-filter="ticker" placeholder="PETR4"><label for="pos-ticker">Ticker</label></div>
+        <div class="input-field col s2"><input id="pos-currency" data-filter="currency" placeholder="BRL"><label for="pos-currency">Currency</label></div>
         <div class="col s1" style="display:flex;align-items:center;padding-top:14px">
-          <label><input type="checkbox" id="pos-short" /><span>Short</span></label>
+          <label><input type="checkbox" id="pos-short" data-filter="short" /><span>Short</span></label>
         </div>
         <div class="col s1" style="display:flex;align-items:center;padding-top:14px">
-          <label><input type="checkbox" id="pos-sim" /><span>Sim</span></label>
+          <label><input type="checkbox" id="pos-sim" data-filter="sim" /><span>Sim</span></label>
         </div>
         <div class="col s1" style="display:flex;align-items:center;padding-top:14px">
-          <label><input type="checkbox" id="pos-order-val" /><span>By Val</span></label>
+          <label><input type="checkbox" id="pos-order-val" data-filter="orderByVal" /><span>By Val</span></label>
         </div>
       </div>
       <div class="row">
         <div class="col s12" id="ticker-exclude"></div>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <div class="col s12" id="presets-panel"></div>
       </div>
       <div class="row">
         <div class="col s12"><button id="run-pos" class="btn waves-effect waves-light">Run Position</button></div>
@@ -60,11 +63,15 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script type="module">
-  import { apiPost, renderTable, drawChart, initTickerExclude } from '/js/utils.js'
+  import { apiPost, renderTable, drawChart, initTickerExclude, initFilterPersistence } from '/js/utils.js'
 
   document.addEventListener('DOMContentLoaded', async () => {
     M.FormSelect.init(document.querySelectorAll('select'))
-    const getExcluded = await initTickerExclude('ticker-exclude')
+    const { getExcluded, setExcluded } = await initTickerExclude('ticker-exclude')
+    const saveFilters = initFilterPersistence('position', {
+      getExtra: () => ({ excludeTickerIds: getExcluded() }),
+      onRestore: (data) => { if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds) }
+    })
 
     document.getElementById('run-pos').addEventListener('click', async () => {
       const range = document.getElementById('pos-range').value
@@ -83,6 +90,7 @@
       if (orderByVal) body.orderByVal = true
       const ex = getExcluded()
       if (ex.length) body.excludeTickerIds = ex
+      saveFilters()
 
       const j = await apiPost('/api/position', body)
       const cols = j.columns || []

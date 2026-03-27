@@ -24,7 +24,7 @@
     <div class="card-panel">
       <div class="row">
         <div class="input-field col s3">
-          <select id="earn-range">
+          <select id="earn-range" data-filter="range">
             <option value="month">Month</option>
             <option value="all">All</option>
             <option value="today">Today</option>
@@ -35,11 +35,11 @@
           </select>
           <label>Range</label>
         </div>
-        <div class="input-field col s2"><input id="earn-year" placeholder="2024"><label for="earn-year">Year / N</label></div>
-        <div class="input-field col s2"><input id="earn-month" placeholder="01"><label for="earn-month">Month / N</label></div>
-        <div class="input-field col s2"><input id="earn-institution" placeholder="institution"><label for="earn-institution">Institution</label></div>
+        <div class="input-field col s2"><input id="earn-year" data-filter="year" placeholder="2024"><label for="earn-year">Year / N</label></div>
+        <div class="input-field col s2"><input id="earn-month" data-filter="month" placeholder="01"><label for="earn-month">Month / N</label></div>
+        <div class="input-field col s2"><input id="earn-institution" data-filter="institution" placeholder="institution"><label for="earn-institution">Institution</label></div>
         <div class="input-field col s3">
-          <select id="earn-source">
+          <select id="earn-source" data-filter="source">
             <option value="">All</option>
             <option value="passive-income">Passive</option>
             <option value="stable-income">Stable</option>
@@ -52,6 +52,9 @@
       <div class="row">
         <div class="col s12" id="ticker-exclude"></div>
       </div>
+      <div class="row" style="margin-bottom:0">
+        <div class="col s12" id="presets-panel"></div>
+      </div>
       <div class="row">
         <div class="col s12"><button id="run-earn" class="btn waves-effect waves-light">Run Earnings</button></div>
       </div>
@@ -63,11 +66,15 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script type="module">
-  import { apiPost, renderTable, drawChart, initTickerExclude } from '/js/utils.js'
+  import { apiPost, renderTable, drawChart, initTickerExclude, initFilterPersistence } from '/js/utils.js'
 
   document.addEventListener('DOMContentLoaded', async () => {
     M.FormSelect.init(document.querySelectorAll('select'))
-    const getExcluded = await initTickerExclude('ticker-exclude')
+    const { getExcluded, setExcluded } = await initTickerExclude('ticker-exclude')
+    const saveFilters = initFilterPersistence('earnings', {
+      getExtra: () => ({ excludeTickerIds: getExcluded() }),
+      onRestore: (data) => { if (data.excludeTickerIds && data.excludeTickerIds.length) setExcluded(data.excludeTickerIds) }
+    })
 
     document.getElementById('run-earn').addEventListener('click', async () => {
       const range = document.getElementById('earn-range').value
@@ -85,6 +92,7 @@
       if (source) body.source = source
       const ex = getExcluded()
       if (ex.length) body.excludeTickerIds = ex
+      saveFilters()
 
       const j = await apiPost('/api/earnings', body)
       const cols = j.columns || []
