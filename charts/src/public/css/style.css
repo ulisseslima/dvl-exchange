@@ -1,0 +1,15 @@
+body{font-family:Inter,Arial,Helvetica,sans-serif}
+label{margin-right:8px}
+input,select{margin-left:6px}
+
+/* Table styles for results */
+.results-table{border-collapse:collapse;width:100%;margin-top:12px}
+.results-table th,.results-table td{border:1px solid #e3e3e3;padding:6px 8px;text-align:left;font-size:13px}
+.results-table th{background:#fafafa}
+.controls-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.small{font-size:13px}
+.pagination{margin-top:8px}
+.btn{background:#007acc;color:#fff;padding:6px 10px;border-radius:4px;border:none;cursor:pointer}
+.btn:disabled{opacity:0.5;cursor:not-allowed}
+.export{background:#28a745}
+

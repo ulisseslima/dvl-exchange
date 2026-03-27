@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Summary — dvl-exchange charts</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>body{font-family:Arial,Helvetica,sans-serif;padding:16px}</style>
+</head>
+<body>
+  <nav>
+    <div class="nav-wrapper blue darken-2">
+      <a href="/" class="brand-logo" style="padding-left:12px">dvl-exchange</a>
+      <ul id="nav-mobile" class="right hide-on-med-and-down">
+        <li><a href="/">Home</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="container">
+    <h4>Summary</h4>
+    <div class="card-panel">
+      <div class="row">
+        <div class="input-field col s3">
+          <select id="sum-range">
+            <option value="month">Month</option>
+            <option value="all">All</option>
+            <option value="today">Today</option>
+            <option value="week">Week</option>
+            <option value="year">Year</option>
+          </select>
+          <label>Range</label>
+        </div>
+        <div class="input-field col s2"><input id="sum-year" placeholder="2024"><label for="sum-year">Year</label></div>
+        <div class="col s2" style="display:flex;align-items:center;padding-top:14px">
+          <label><input type="checkbox" id="sum-sim" /><span>Simulation</span></label>
+        </div>
+        <div class="col s2" style="display:flex;align-items:center">
+          <button id="run-sum" class="btn waves-effect waves-light">Run</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="results"></div>
+    <div style="margin-top:18px"><canvas id="chart" width="800" height="400"></canvas></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script type="module">
+  import { apiPost, renderTable, drawChart } from '/js/utils.js'
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    M.FormSelect.init(document.querySelectorAll('select'))
+
+    document.getElementById('run-sum').addEventListener('click', async () => {
+      const range = document.getElementById('sum-range').value
+      const year = document.getElementById('sum-year').value
+      const simulation = document.getElementById('sum-sim').checked
+
+      const body = { range }
+      if (year) body.year = year
+      if (simulation) body.simulation = true
+
+      const j = await apiPost('/api/summary', body)
+      const cols = j.columns || []
+      const rows = j.rows || []
+      renderTable(document.getElementById('results'), cols, rows)
+
+      if (cols.length > 1 && rows.length > 0) {
+        const valueIdx = cols.indexOf('value') !== -1 ? cols.indexOf('value') : 2
+        const labelIdx = cols.indexOf('currency') !== -1 ? cols.indexOf('currency') : 0
+        drawChart('chart', cols, rows, labelIdx, valueIdx, 'bar')
+      }
+    })
+  })
+  </script>
+</body>
+</html>

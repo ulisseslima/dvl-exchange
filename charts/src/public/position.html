@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Position — dvl-exchange charts</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>body{font-family:Arial,Helvetica,sans-serif;padding:16px}</style>
+</head>
+<body>
+  <nav>
+    <div class="nav-wrapper blue darken-2">
+      <a href="/" class="brand-logo" style="padding-left:12px">dvl-exchange</a>
+      <ul id="nav-mobile" class="right hide-on-med-and-down">
+        <li><a href="/">Home</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="container">
+    <h4>Position</h4>
+    <div class="card-panel">
+      <div class="row">
+        <div class="input-field col s3">
+          <select id="pos-range">
+            <option value="month">Month</option>
+            <option value="all">All</option>
+            <option value="today">Today</option>
+            <option value="week">Week</option>
+            <option value="year">Year</option>
+          </select>
+          <label>Range</label>
+        </div>
+        <div class="input-field col s2"><input id="pos-year" placeholder="2024"><label for="pos-year">Year</label></div>
+        <div class="input-field col s2"><input id="pos-ticker" placeholder="PETR4"><label for="pos-ticker">Ticker</label></div>
+        <div class="input-field col s2"><input id="pos-currency" placeholder="BRL"><label for="pos-currency">Currency</label></div>
+        <div class="col s1" style="display:flex;align-items:center;padding-top:14px">
+          <label><input type="checkbox" id="pos-short" /><span>Short</span></label>
+        </div>
+        <div class="col s1" style="display:flex;align-items:center;padding-top:14px">
+          <label><input type="checkbox" id="pos-sim" /><span>Sim</span></label>
+        </div>
+        <div class="col s1" style="display:flex;align-items:center;padding-top:14px">
+          <label><input type="checkbox" id="pos-order-val" /><span>By Val</span></label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col s12" id="ticker-exclude"></div>
+      </div>
+      <div class="row">
+        <div class="col s12"><button id="run-pos" class="btn waves-effect waves-light">Run Position</button></div>
+      </div>
+    </div>
+
+    <div id="results"></div>
+    <div style="margin-top:18px"><canvas id="chart" width="800" height="400"></canvas></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script type="module">
+  import { apiPost, renderTable, drawChart, initTickerExclude } from '/js/utils.js'
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    M.FormSelect.init(document.querySelectorAll('select'))
+    const getExcluded = await initTickerExclude('ticker-exclude')
+
+    document.getElementById('run-pos').addEventListener('click', async () => {
+      const range = document.getElementById('pos-range').value
+      const year = document.getElementById('pos-year').value
+      const ticker = document.getElementById('pos-ticker').value
+      const currency = document.getElementById('pos-currency').value
+      const short = document.getElementById('pos-short').checked
+      const simulation = document.getElementById('pos-sim').checked
+      const orderByVal = document.getElementById('pos-order-val').checked
+      const body = { range }
+      if (year) body.year = year
+      if (ticker) body.ticker = ticker
+      if (currency) body.currency = currency
+      if (short) body.short = true
+      if (simulation) body.simulation = true
+      if (orderByVal) body.orderByVal = true
+      const ex = getExcluded()
+      if (ex.length) body.excludeTickerIds = ex
+
+      const j = await apiPost('/api/position', body)
+      const cols = j.columns || []
+      const rows = j.rows || []
+      renderTable(document.getElementById('results'), cols, rows)
+      // chart diff column (last col)
+      if (cols.length > 1 && rows.length > 0) {
+        const diffIdx = cols.indexOf('diff')
+        const tickerIdx = cols.indexOf('ticker')
+        if (diffIdx !== -1 && tickerIdx !== -1) {
+          drawChart('chart', cols, rows, tickerIdx, diffIdx, 'bar')
+        }
+      }
+    })
+  })
+  </script>
+</body>
+</html>

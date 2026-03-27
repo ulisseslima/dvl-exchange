@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dividends — dvl-exchange charts</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>body{font-family:Arial,Helvetica,sans-serif;padding:16px}</style>
+</head>
+<body>
+  <nav>
+    <div class="nav-wrapper blue darken-2">
+      <a href="/" class="brand-logo" style="padding-left:12px">dvl-exchange</a>
+      <ul id="nav-mobile" class="right hide-on-med-and-down">
+        <li><a href="/">Home</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="container">
+    <h4>Dividends</h4>
+    <div class="card-panel">
+      <div class="row">
+        <div class="input-field col s3">
+          <select id="div-range">
+            <option value="month">Month</option>
+            <option value="all">All</option>
+            <option value="today">Today</option>
+            <option value="week">Week</option>
+            <option value="year">Year</option>
+            <option value="year-month">Year-Month</option>
+          </select>
+          <label>Range</label>
+        </div>
+        <div class="input-field col s2"><input id="div-year" placeholder="2024"><label for="div-year">Year</label></div>
+        <div class="input-field col s2"><input id="div-month" placeholder="01"><label for="div-month">Month</label></div>
+        <div class="input-field col s2"><input id="div-ticker" placeholder="PETR4"><label for="div-ticker">Ticker</label></div>
+        <div class="input-field col s2"><input id="div-currency" placeholder="BRL"><label for="div-currency">Currency</label></div>
+      </div>
+      <div class="row">
+        <div class="col s3" style="display:flex;align-items:center;padding-top:14px">
+          <label><input type="checkbox" id="div-group-ticker" /><span>Group by Ticker</span></label>
+        </div>
+        <div class="col s3" style="display:flex;align-items:center;padding-top:14px">
+          <label><input type="checkbox" id="div-group-month" /><span>Group by Month</span></label>
+        </div>
+        <div class="col s3" style="display:flex;align-items:center">
+          <button id="run-div" class="btn waves-effect waves-light">Run Dividends</button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col s12" id="ticker-exclude"></div>
+      </div>
+    </div>
+
+    <div id="results"></div>
+    <div style="margin-top:18px"><canvas id="chart" width="800" height="400"></canvas></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script type="module">
+  import { apiPost, renderTable, drawChart, initTickerExclude } from '/js/utils.js'
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    M.FormSelect.init(document.querySelectorAll('select'))
+    const getExcluded = await initTickerExclude('ticker-exclude')
+
+    document.getElementById('run-div').addEventListener('click', async () => {
+      const range = document.getElementById('div-range').value
+      const year = document.getElementById('div-year').value
+      const month = document.getElementById('div-month').value
+      const ticker = document.getElementById('div-ticker').value
+      const currency = document.getElementById('div-currency').value
+      const groupByTicker = document.getElementById('div-group-ticker').checked
+      const groupByMonth = document.getElementById('div-group-month').checked
+
+      const body = { range }
+      if (year) body.year = year
+      if (month) body.month = month
+      if (ticker) body.ticker = ticker
+      if (currency) body.currency = currency
+      if (groupByTicker) body.groupByTicker = true
+      if (groupByMonth) body.groupByMonth = true
+      const ex = getExcluded()
+      if (ex.length) body.excludeTickerIds = ex
+
+      const j = await apiPost('/api/dividends', body)
+      const cols = j.columns || []
+      const rows = j.rows || []
+      renderTable(document.getElementById('results'), cols, rows)
+
+      if (cols.length > 1 && rows.length > 0) {
+        // chart the "brl" or "total" column
+        const brlIdx = cols.indexOf('brl') !== -1 ? cols.indexOf('brl') : cols.indexOf('total')
+        const labelIdx = cols.indexOf('name') !== -1 ? cols.indexOf('name') : (cols.indexOf('month') !== -1 ? cols.indexOf('month') : 0)
+        if (brlIdx !== -1) drawChart('chart', cols, rows, labelIdx, brlIdx, 'bar')
+      }
+    })
+  })
+  </script>
+</body>
+</html>
