@@ -47,6 +47,65 @@ const dateWithoutTz = (dateString, offset) => {
 	return `${year}-${month}-${day}T00:00:00`
 };
 
+const getEaster = (year) => {
+	const a = year % 19
+	const b = Math.floor(year / 100)
+	const c = year % 100
+	const d = Math.floor(b / 4)
+	const e = b % 4
+	const f = Math.floor((b + 8) / 25)
+	const g = Math.floor((b - f + 1) / 3)
+	const h = (19 * a + b - d - g + 15) % 30
+	const i = Math.floor(c / 4)
+	const k = c % 4
+	const l = (32 + 2 * e + 2 * i - h - k) % 7
+	const m = Math.floor((a + 11 * h + 22 * l) / 451)
+	const month = Math.floor((h + l - 7 * m + 114) / 31) - 1
+	const day = ((h + l - 7 * m + 114) % 31) + 1
+	return new Date(year, month, day)
+}
+
+const _holidayCache = {}
+const getBrazilianHolidays = (year) => {
+	if (_holidayCache[year]) return _holidayCache[year]
+	const easter = getEaster(year)
+	const addDays = (date, days) => { const d = new Date(date); d.setDate(d.getDate() + days); return d }
+	const fmt = (date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+	_holidayCache[year] = new Set([
+		`${year}-01-01`, // New Year's Day
+		`${year}-04-21`, // Tiradentes
+		`${year}-05-01`, // Labor Day
+		`${year}-09-07`, // Independence Day
+		`${year}-10-12`, // Our Lady of Aparecida
+		`${year}-11-02`, // All Souls' Day
+		`${year}-11-15`, // Republic Proclamation Day
+		`${year}-11-20`, // Black Consciousness Day
+		`${year}-12-25`, // Christmas
+		fmt(addDays(easter, -48)), // Carnival Monday
+		fmt(addDays(easter, -47)), // Carnival Tuesday
+		fmt(addDays(easter,  -2)), // Good Friday
+		fmt(addDays(easter,  60)), // Corpus Christi
+	])
+	return _holidayCache[year]
+}
+
+const subtractBusinessDays = (dateString, days) => {
+	const date = new Date(dateString)
+	let remaining = days
+	while (remaining > 0) {
+		date.setDate(date.getDate() - 1)
+		const dow = date.getDay()
+		if (dow === 0 || dow === 6) continue
+		const fmt = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+		if (getBrazilianHolidays(date.getFullYear()).has(fmt)) continue
+		remaining--
+	}
+	const year = date.getFullYear()
+	const month = String(date.getMonth() + 1).padStart(2, '0')
+	const day = String(date.getDate()).padStart(2, '0')
+	return `${year}-${month}-${day}T00:00:00`
+};
+
 let json
 console.log("connecting to local db...")
 
@@ -251,7 +310,7 @@ async function processOp(client, movimentacao, item, ticker) {
 		return
 	}
 
-	const startDate = dateWithoutTz(item.data, -3) // 3 business days to process
+	const startDate = subtractBusinessDays(item.data, 3) // 3 business days to process (skipping weekends and BR holidays)
 
 	console.log(`searching matching loan for:`, { ticker: ticker.id, amount: movimentacao.quantidade, dateA: startDate, dateB: item.data })
 	let loan = await client.query(`
