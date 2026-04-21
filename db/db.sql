@@ -2,6 +2,7 @@
 -- TODO pool partitionaing
 
 --/ if necessary: sudo apt-get install postgresql-contrib
+--/ adds similarity() and % operator for trigram matching
 CREATE EXTENSION pg_trgm;
 
 --/

@@ -63,6 +63,10 @@ do
     --extra)
       source=extra-income
     ;;
+    --notes)
+      shift
+      notes="$1"
+    ;;    
     --fraction)
       shift
       fraction=$1

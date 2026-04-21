@@ -166,6 +166,9 @@ do
         grouping="product.id,op.id"
       fi
     ;;
+    --totals-only|--totals)
+      totals_only=true
+    ;;
     *)
         echo "$(sh_name $ME) - bad option '$1'"
         exit 1
@@ -190,6 +193,7 @@ else
     main_ordering="$ordering"
 fi
 
+if [[ "$totals_only" != true ]]; then
 $psql "select ${extra_cols}
   max(op.created) as last,
   max(store.category) as category,
@@ -212,8 +216,9 @@ and $brand
 group by $grouping
 order by $main_ordering
 " --full
+fi
 
-if [[ -z "$category_filter" ]]; then
+if [[ -z "$category_filter" || "$totals_only" == true ]]; then
     info -n "total spending of products between $actual_start and $actual_end by category"
     $psql "select 
       max(op.created) as last,
