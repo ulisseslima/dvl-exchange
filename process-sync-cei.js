@@ -1,30 +1,4 @@
-const Reset = "\x1b[0m"
-const Bright = "\x1b[1m"
-const Dim = "\x1b[2m"
-const Underscore = "\x1b[4m"
-const Blink = "\x1b[5m"
-const Reverse = "\x1b[7m"
-const Hidden = "\x1b[8m"
-
-const FgBlack = "\x1b[30m"
-const FgRed = "\x1b[31m"
-const FgGreen = "\x1b[32m"
-const FgYellow = "\x1b[33m"
-const FgBlue = "\x1b[34m"
-const FgMagenta = "\x1b[35m"
-const FgCyan = "\x1b[36m"
-const FgWhite = "\x1b[37m"
-const FgGray = "\x1b[90m"
-
-const BgBlack = "\x1b[40m"
-const BgRed = "\x1b[41m"
-const BgGreen = "\x1b[42m"
-const BgYellow = "\x1b[43m"
-const BgBlue = "\x1b[44m"
-const BgMagenta = "\x1b[45m"
-const BgCyan = "\x1b[46m"
-const BgWhite = "\x1b[47m"
-const BgGray = "\x1b[100m"
+const { styles, wrap, printf } = require('./colors')
 
 const fs = require('fs')
 const Pool = require('pg').Pool
@@ -143,14 +117,14 @@ let itens = JSON.parse(json).itens
 			console.log(`	${movimentacao.tipoMovimentacao} - ${tickerName}: ${movimentacao.quantidade} * ${movimentacao.precoUnitario} = ${movimentacao.valorOperacao}`)
 			if (!movimentacao.valorOperacao && !movimentacao.quantidade) {
 				// https://stackoverflow.com/questions/9781218/how-to-change-node-jss-console-font-color
-				console.log(`${FgYellow}%s${Reset}`, `	└ sync item ignored. no value.`);
+				printf('FgYellow', `\t└ sync item ignored. no value.`)
 				continue
 			}
 			
 			let results = await client.query(`select id from tickers where name ilike $1 limit 1`, [tickerName+"%"])
 			let ticker = results.rows[0]
 			if (!ticker?.id) {
-				console.log(`	└ ${BgMagenta}${FgWhite}!!! ticker not registered:${Reset} ${tickerName}`)
+				console.log(`\t└ ${wrap('BgMagenta', wrap('FgWhite', '!!! ticker not registered:'))} ${tickerName}`)
 				continue
 			}
 
@@ -176,7 +150,7 @@ let itens = JSON.parse(json).itens
 					await processRevSplit(client, movimentacao, item, ticker)
 					break
 				} default: {
-					console.log(`${BgYellow}${FgBlack}%s${Reset}`, `	└ type ignored: ${tipoMovimentacao}`);
+					printf('BgYellow', `\t└ type ignored: ${tipoMovimentacao}`)
 					break
 				}
 			}
@@ -203,9 +177,9 @@ async function processRevSplit(client, movimentacao, item, ticker) {
 	`, [asset.id, item.data])
 
     if (matches.rows[0].count > 0) {
-		console.log("	└ rev split already saved")
-		return
-	}
+        printf('FgGray', `\t└ rev split already saved`)
+        return
+    }
 
 	let amount_query = await client.query(`
 		select amount from assets
@@ -226,7 +200,7 @@ async function processRevSplit(client, movimentacao, item, ticker) {
 		values ($1, $2, $3, $4, $5, $6)
 	`, [asset.id, ticker.id, amount, new_amount, (new_amount < amount), item.data]
 	)
-	console.log(`	└- ${BgCyan}${FgRed}reverse split registered from ${amount} to ${new_amount}${Reset}`)
+	console.log(`	└- ${wrap('BgCyan', wrap('FgRed', `reverse split registered from ${amount} to ${new_amount}`))}`)
 
 	await client.query(`
 		insert into asset_ops 
@@ -251,7 +225,7 @@ async function processSplit(client, movimentacao, item, ticker) {
 	`, [asset.id, item.data])
 
     if (matches.rows[0].count > 0) {
-		console.log("	└ split already saved")
+        printf('FgGray', `\t└ split already saved`)
 		return
 	}
 
@@ -275,7 +249,7 @@ async function processSplit(client, movimentacao, item, ticker) {
 		values ($1, $2, $3, $4, $5, $6)
 	`, [asset.id, ticker.id, amount, new_amount, (new_amount < amount), item.data]
 	)
-	console.log(`	└- ${BgCyan}${FgBlue}split registered from ${amount} to ${new_amount} (+${movimentacao.quantidade})${Reset}`)
+	console.log(`	└- ${wrap('BgCyan', wrap('FgBlue', `split registered from ${amount} to ${new_amount} (+${movimentacao.quantidade})`))}`)
 
 	await client.query(`
 		insert into asset_ops 
@@ -306,7 +280,7 @@ async function processOp(client, movimentacao, item, ticker) {
 	`, [asset.id, movimentacao.valorOperacao, movimentacao.quantidade, item.data])
 
 	if (matches.rows[0].count > 0) {
-		console.log("	└ op already saved")
+		printf('FgGray', `\t└ op already saved`)
 		return
 	}
 
@@ -321,17 +295,17 @@ async function processOp(client, movimentacao, item, ticker) {
 	`, [ticker.id, movimentacao.quantidade, startDate, item.data])
 
 	if (loan?.rows[0]?.id) {
-		console.log(`	└ skipping because of matching loan op #${loan.rows[0].id}`)
+		printf('FgGray', `\t└ skipping because of matching loan op #${loan.rows[0].id}`)
 		return
 	} else {
-		console.log(`	└ no matching loan found`)
+		printf('FgGray', `\t└ no matching loan found`)
 	}
 
 	await client.query(
 		'insert into asset_ops (asset_id, created, price, amount, currency, institution, kind) values ($1, $2, $3, $4, $5, $6, $7)',
 		[asset.id, item.data, movimentacao.valorOperacao, movimentacao.quantidade, 'BRL', movimentacao.instituicao, 'BUY']
 	)
-	console.log(`	└ ${BgBlack}${FgWhite}op saved${Reset}`)
+	console.log(`	└ ${wrap('BgBlack', wrap('FgWhite', 'op saved'))}`)
 
 	await client.query(
 		`update assets set amount=amount+$1, cost=cost+$2, value=0 where id = $3`,
@@ -354,17 +328,17 @@ async function processDividends(client, movimentacao, item, ticker) {
 		and created = $5
 	`, [tickerId, movimentacao.precoUnitario, movimentacao.quantidade, movimentacao.valorOperacao, item.data])
 
-	if (matches.rows[0].count > 0) {
-		console.log("	└ dividend already saved")
-		return
-	}
+		if (matches.rows[0].count > 0) {
+			printf('FgGray', `\t└ dividend already saved`)
+			return
+		}
 
 	await client.query(
 		'insert into dividends (ticker_id, created, value, amount, total, currency) values ($1, $2, $3, $4, $5, $6)',
 		[tickerId, item.data, movimentacao.precoUnitario, movimentacao.quantidade, movimentacao.valorOperacao, "BRL"]
 	)
-	console.log(`	└ dividend saved`)
-	console.log(`	└- ${BgGreen}${FgWhite}dividends of $${movimentacao.valorOperacao} saved${Reset}`)
+		printf('FgGray', `\t└ dividend saved`)
+		console.log(`	└- ${wrap('BgGreen', wrap('FgWhite', `dividends of $${movimentacao.valorOperacao} saved`))}`)
 	return matches
 }
 
@@ -397,11 +371,16 @@ async function processLoan(client, movimentacao, item, ticker, listaMovimentacao
 		return
 	}
 
+	if (!movimentacao?.valorOperacao) {
+		console.log(`	└ ignoring loan for ticker ${ticker.name}. no value.`)
+		return
+	}
+
 	await client.query(
 		'insert into loans (ticker_id, created, amount, total, currency) values ($1, $2, $3, $4, $5)',
 		[tickerId, item.data, movimentacao.quantidade, movimentacao.valorOperacao, "BRL"]
 	)
-	console.log(`	└ ${BgBlue}${FgWhite}loan saved${Reset}`)
+	console.log(`	└ ${wrap('BgBlue', wrap('FgWhite', 'loan saved'))}`)
 	return matches
 }
 
