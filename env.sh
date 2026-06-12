@@ -26,6 +26,9 @@ DEFAULT_CURRENCY=USD
 CONFD=$HOME/.${REPO_NAME}
 LOCAL_ENV=$CONFD/config
 
+NOTIFICATION_LOGS=$CONFD/notifications/notifications.log
+mkdir -p $(dirname $NOTIFICATION_LOGS)
+
 LOCAL_DB=$CONFD/db
 LOGF=/tmp/$INSTALL_PREFIX.log
 
@@ -235,4 +238,9 @@ function lpad() {
     n=$1
     pads=${2:-2}
     printf "%0${pads}d\n" $n
+}
+
+function notification_log() {
+    message="$1"
+    echo -e "$(date '+%Y-%m-%d %H:%M:%S') - $message" >> $NOTIFICATION_LOGS
 }

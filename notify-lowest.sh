@@ -86,7 +86,7 @@ fi
 while IFS="|" read -r name now_price min_price currency; do
   body="now: $now_price — min: $min_price $currency"
     notify.sh "Lowest price: $name" "$body" >/dev/null 2>&1 || info "notify-send failed for $name"
-    info "Sent notification for $name: $body"
+    notification_log "Lowest price: $name - $body"
 done <<< "$result"
 
 exit 0
